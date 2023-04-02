@@ -1,0 +1,32 @@
+IF NOT EXISTS CREATE TABLE Task (
+    TaskID TEXT PRIMARY KEY,
+    CreatedTime TEXT NOT NULL
+);
+
+IF NOT EXISTS CREATE TABLE Title (
+    TitleID TEXT PRIMARY KEY,
+    TaskID TEXT NOT NULL,
+    UpdatedTime TEXT NOT NULL,
+    Title TEXT NOT NULL
+);
+
+IF NOT EXISTS CREATE TABLE CheckState (
+    CheckStateID TEXT PRIMARY KEY,
+    TaskID TEXT NOT NULL,
+    UpdatedTime TEXT NOT NULL,
+    IsChecked TEXT NOT NULL
+);
+
+IF NOT EXISTS CREATE TABLE LimitInfo (
+    LinitInfoID TEXT PRIMARY KEY,
+    TaskID TEXT NOT NULL,
+    UpdatedTime TEXT NOT NULL,
+    LimitTime Text
+);
+
+IF NOT EXISTS CREATE TABLE Board (
+    BoardID TEXT NOT KEY,
+    TaskID TEXT NOT NULL,
+    UpdatedTime TEXT NOT NULL,
+    BoardName TEXT NOT NULL
+);
