@@ -6,26 +6,52 @@ import (
 	"embed"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/mt3hr/rykv/kyou"
 )
 
 const TimeLayout = kyou.TimeLayout
 
+func NewMiRepSQLite(dbFileName string) (MiRep, error) {
+	db, err := sql.Open("sqlite3", dbFileName)
+	if err != nil {
+		err = fmt.Errorf("error at open database %s: %w", dbFileName, err)
+		return nil, err
+	}
+	_, err = db.Exec(sqlCreateTables)
+	if err != nil {
+		err = fmt.Errorf("error at create table to database at %s: %w", dbFileName, err)
+		return nil, err
+	}
+	return &miRepSQLiteImpl{
+		filename: dbFileName,
+		db:       db,
+		m:        &sync.Mutex{},
+	}, nil
+}
+
+type miRepSQLiteImpl struct {
+	filename string
+	db       *sql.DB
+	m        *sync.Mutex
+}
+
 var (
 	//go:embed mi/mi/embed
 	embedDir embed.FS
 
-	sqlCreateTables      string
-	sqlGetTask           string
-	sqlGetCheckStateInfo string
-	sqlGetTaskTitleInfo  string
-	sqlGetLimitInfo      string
-	sqlGetBoardInfo      string
+	sqlCreateTables          string
+	sqlGetAllTasks           string
+	sqlGetTask               string
+	sqlGetCheckStateInfo     string
+	sqlGetAllCheckStateInfos string
+	sqlGetTaskTitleInfo      string
+	sqlGetLimitInfo          string
+	sqlGetBoardInfo          string
 
 	sqlGetLatestTaskFromTaskID          string
 	sqlGetLatestCheckStateFromTaskID    string
@@ -52,12 +78,23 @@ func init() {
 		panic(err)
 	}
 	sqlGetTask = string(sqlGetTaskB)
+	sqlGetAllTasksB, err := embedDir.ReadFile("/sql/GetAllTasks.sql")
+	if err != nil {
+		panic(err)
+	}
+	sqlGetAllTasks = string(sqlGetAllTasksB)
+
 	sqlGetCheckStateInfoB, err := embedDir.ReadFile("/sql/GetCheckStateInfo.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetCheckStateInfo = string(sqlGetCheckStateInfoB)
 	sqlGetTaskTitleInfoB, err := embedDir.ReadFile("/sql/GetTaskTitleInfo.sql")
+	sqlGetAllCheckStateInfosB, err := embedDir.ReadFile("/sql/GetAllCheckStateInfos.sql")
+	if err != nil {
+		panic(err)
+	}
+	sqlGetAllCheckStateInfos = string(sqlGetAllCheckStateInfosB)
 	if err != nil {
 		panic(err)
 	}
@@ -131,90 +168,34 @@ func init() {
 	sqlDelete = string(sqlDeleteB)
 }
 
-type MiRep interface {
-	GetTask(ctx context.Context, taskID string) (*Task, error)
-	GetCheckStateInfo(ctx context.Context, checkStateID string) (*CheckStateInfo, error)
-	GetTaskTitleInfo(cxt context.Context, taskTitleID string) (*TaskTitleInfo, error)
-	GetLimitInfo(ctx context.Context, limitInfoID string) (*LimitInfo, error)
-	GetBoardInfo(ctx context.Context, boardInfoID string) (*BoardInfo, error)
-
-	GetLatestCheckStateInfoFromTaskID(ctx context.Context, taskID string) (*CheckStateInfo, error)
-	GetLatestTaskTitleInfoFromTaskID(cxt context.Context, taskID string) (*TaskTitleInfo, error)
-	GetLatestLimitInfoFromTaskID(ctx context.Context, taskID string) (*LimitInfo, error)
-	GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string) (*BoardInfo, error)
-
-	AddTask(task *Task) error
-	AddCheckStateInfo(checkStateInfo *CheckStateInfo) error
-	AddTaskTitleInfo(taskTitleInfo *TaskTitleInfo) error
-	AddLimitInfo(limitInfo *LimitInfo) error
-	AddBoardInfo(boardInfo *BoardInfo) error
-
-	GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error)
-	GetContentHTML(ctx context.Context, id string) (string, error)
-	GetPath(ctx context.Context, id string) (string, error)
-	Delete(ctx context.Context, id string) error
-	Close() error
-	Path() string
-	RepName() string
-	Search(ctx context.Context, word string) ([]*kyou.Kyou, error)
-	UpdateCache() error
-}
-
-type Task struct {
-	TaskID      string    `json:"task_id"`
-	CreatedTime time.Time `json:"created_time"`
-}
-
-type CheckStateInfo struct {
-	CheckStateID string    `json:"check_state_id"`
-	TaskID       string    `json:"task_id"`
-	UpdatedTime  time.Time `json:"updated_time"`
-	IsChecked    bool      `json:"is_checked"`
-}
-
-type TaskTitleInfo struct {
-	TaskTitleID string    `json:"task_title_id"`
-	TaskID      string    `json:"task_id"`
-	UpdatedTime time.Time `json:"updated_time"`
-	Title       string    `json:"title"`
-}
-
-type LimitInfo struct {
-	LimitID     string    `json:"limit_id"`
-	TaskID      string    `json:"task_id"`
-	UpdatedTime time.Time `json:"updated_time"`
-	Limit       time.Time `json:"limit"`
-}
-
-type BoardInfo struct {
-	BoardInfoID string    `json:"board_info_id"`
-	TaskID      string    `json:"task_id"`
-	UpdatedTime time.Time `json:"updated_time"`
-	BoardName   string    `json:"board_name"`
-}
-
-func NewMiRepSQLite(dbFileName string) (MiRep, error) {
-	db, err := sql.Open("sqlite3", dbFileName)
+func (m *miRepSQLiteImpl) GetAllTasks(ctx context.Context) ([]*Task, error) {
+	tasks := []*Task{}
+	statement := sqlGetAllTasks
+	rows, err := m.db.QueryContext(ctx, statement)
 	if err != nil {
-		err = fmt.Errorf("error at open database %s: %w", dbFileName, err)
+		err = fmt.Errorf("error at get all tasks: %w", err)
 		return nil, err
 	}
-	_, err = db.Exec(sqlCreateTables)
-	if err != nil {
-		err = fmt.Errorf("error at create table to database at %s: %w", dbFileName, err)
-		return nil, err
-	}
-	return &miRepSQLiteImpl{
-		filename: dbFileName,
-		db:       db,
-		m:        &sync.Mutex{},
-	}, nil
-}
+	defer rows.Close()
 
-type miRepSQLiteImpl struct {
-	filename string
-	db       *sql.DB
-	m        *sync.Mutex
+	for rows.Next() {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			task := &Task{}
+			createdTimeStr := ""
+			err := rows.Scan(&task.TaskID, &createdTimeStr)
+
+			task.CreatedTime, err = time.Parse(TimeLayout, createdTimeStr)
+			if err != nil {
+				err = fmt.Errorf("error at parse time: %w", err)
+				return nil, err
+			}
+			tasks = append(tasks, task)
+		}
+	}
+	return tasks, nil
 }
 
 func (m *miRepSQLiteImpl) GetTask(ctx context.Context, taskID string) (*Task, error) {
@@ -290,7 +271,7 @@ func (m *miRepSQLiteImpl) GetLimitInfo(ctx context.Context, limitInfoID string) 
 
 	limitInfo := &LimitInfo{}
 	updatedTimeStr := ""
-	limitTimeStr := ""
+	limitTimeStr := sql.NullString{}
 	err := row.Scan(&limitInfo.LimitID,
 		&limitInfo.TaskID,
 		&updatedTimeStr,
@@ -306,10 +287,12 @@ func (m *miRepSQLiteImpl) GetLimitInfo(ctx context.Context, limitInfoID string) 
 		return nil, err
 	}
 
-	limitInfo.Limit, err = time.Parse(TimeLayout, limitTimeStr)
-	if err != nil {
-		err = fmt.Errorf("error at parse limit time %s: %w", limitInfoID, err)
-		return nil, err
+	if limitTimeStr.Valid {
+		*limitInfo.Limit, err = time.Parse(TimeLayout, limitTimeStr.String)
+		if err != nil {
+			err = fmt.Errorf("error at parse limit time %s: %w", limitInfoID, err)
+			return nil, err
+		}
 	}
 	return limitInfo, nil
 }
@@ -391,7 +374,7 @@ func (m *miRepSQLiteImpl) GetLatestLimitInfoFromTaskID(ctx context.Context, task
 
 	limitInfo := &LimitInfo{}
 	updatedTimeStr := ""
-	limitTimeStr := ""
+	limitTimeStr := sql.NullString{}
 	err := row.Scan(&limitInfo.LimitID,
 		&limitInfo.TaskID,
 		&updatedTimeStr,
@@ -407,10 +390,12 @@ func (m *miRepSQLiteImpl) GetLatestLimitInfoFromTaskID(ctx context.Context, task
 		return nil, err
 	}
 
-	limitInfo.Limit, err = time.Parse(TimeLayout, limitTimeStr)
-	if err != nil {
-		err = fmt.Errorf("error at parse limit time %s: %w", taskID, err)
-		return nil, err
+	if limitTimeStr.Valid {
+		*limitInfo.Limit, err = time.Parse(TimeLayout, limitTimeStr.String)
+		if err != nil {
+			err = fmt.Errorf("error at parse limit time %s: %w", taskID, err)
+			return nil, err
+		}
 	}
 	return limitInfo, nil
 }
@@ -517,12 +502,152 @@ func (m *miRepSQLiteImpl) AddBoardInfo(boardInfo *BoardInfo) error {
 	return nil
 }
 
+func (m *miRepSQLiteImpl) GetTasksAtBoard(ctx context.Context, query *SearchTaskQuery) ([]*Task, error) {
+	//TODO タグによる絞り込みはここからではできないのでhandlerあたりで絞って
+	matchTasks := []*Task{}
+	taskInfos := map[string]*TaskInfo{}
+	tasks, err := m.GetAllTasks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, task := range tasks {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+			if err != nil {
+				return nil, err
+			}
+			if taskInfo.BoardInfo.BoardName == query.Board &&
+				strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), strings.ToLower(query.Word)) {
+				isMatch := false
+				switch query.CheckState {
+				case NoCheckOnly:
+					isMatch = !taskInfo.CheckStateInfo.IsChecked
+				case CheckOnly:
+					isMatch = taskInfo.CheckStateInfo.IsChecked
+				case All:
+					isMatch = true
+				}
+				if isMatch {
+					matchTasks = append(matchTasks, task)
+					taskInfos[task.TaskID] = taskInfo
+				}
+			}
+		}
+	}
+
+	switch query.SortType {
+	case CreatedTimeDesc:
+		sort.Slice(matchTasks, func(i int, j int) bool {
+			return matchTasks[i].CreatedTime.After(matchTasks[j].CreatedTime)
+		})
+	case LimitTimeAsc:
+		sort.Slice(matchTasks, func(i int, j int) bool {
+			if taskInfos[matchTasks[i].TaskID].LimitInfo.Limit == nil && taskInfos[matchTasks[j].TaskID].LimitInfo.Limit == nil {
+				return false
+			}
+			if taskInfos[matchTasks[i].TaskID].LimitInfo.Limit != nil && taskInfos[matchTasks[j].TaskID].LimitInfo.Limit == nil {
+				return true
+			}
+			if taskInfos[matchTasks[i].TaskID].LimitInfo.Limit == nil && taskInfos[matchTasks[j].TaskID].LimitInfo.Limit != nil {
+				return false
+			}
+			limitI := *taskInfos[matchTasks[i].TaskID].LimitInfo.Limit
+			limitJ := *taskInfos[matchTasks[j].TaskID].LimitInfo.Limit
+			return limitI.Before(limitJ)
+		})
+	}
+
+	return nil, nil
+}
+
+func (m *miRepSQLiteImpl) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error) {
+	taskInfo := &TaskInfo{}
+	var err error
+	taskInfo.CheckStateInfo, err = m.GetLatestCheckStateInfoFromTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	taskInfo.TaskTitleInfo, err = m.GetLatestTaskTitleInfoFromTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	taskInfo.LimitInfo, err = m.GetLatestLimitInfoFromTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	taskInfo.BoardInfo, err = m.GetLatestBoardInfoFromTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	return taskInfo, nil
+}
+
 func (m *miRepSQLiteImpl) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error) {
-	panic("not implemented") // TODO: Implement
+	kyous := []*kyou.Kyou{}
+
+	tasks, err := m.GetAllTasks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, task := range tasks {
+		taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+		if err != nil {
+			return nil, err
+		}
+		kyous = append(kyous, &kyou.Kyou{
+			ID:          taskInfo.Task.TaskID,
+			Time:        taskInfo.Task.CreatedTime,
+			RepName:     m.RepName(),
+			ImageSource: "",
+		})
+	}
+
+	checkStateInfos, err := m.getAllCheckStateInfos(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, checkStateInfo := range checkStateInfos {
+		kyous = append(kyous, &kyou.Kyou{
+			ID:          checkStateInfo.CheckStateID,
+			Time:        checkStateInfo.UpdatedTime,
+			RepName:     m.RepName(),
+			ImageSource: "",
+		})
+	}
+	return kyous, nil
 }
 
 func (m *miRepSQLiteImpl) GetContentHTML(ctx context.Context, id string) (string, error) {
-	panic("not implemented") // TODO: Implement
+	tasks, _ := m.GetAllTasks(ctx)
+	if tasks != nil {
+		for _, task := range tasks {
+			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+			if err != nil {
+				return "", err
+			}
+			return `<p>タスク作成: ` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+		}
+	}
+
+	checkStateInfos, _ := m.getAllCheckStateInfos(ctx)
+	if checkStateInfos != nil {
+		for _, checkStateInfo := range checkStateInfos {
+			taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
+			if err != nil {
+				return "", err
+			}
+			if taskInfo.CheckStateInfo.IsChecked {
+				return `<p>☑` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+			} else {
+				return `<p>□` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("not found kyou %s", id)
 }
 
 func (m *miRepSQLiteImpl) GetPath(ctx context.Context, id string) (string, error) {
@@ -530,6 +655,9 @@ func (m *miRepSQLiteImpl) GetPath(ctx context.Context, id string) (string, error
 }
 
 func (m *miRepSQLiteImpl) Delete(ctx context.Context, id string) error {
+	// タスクだった場合、関連情報もDBから消したほうがよくない？と思ったけど別DBにある可能性があるので消さなくていいか
+	// いやそんなことないか、RepsでFor回されたときに消せるわ
+	//TODO あでも接続されていないDBがあったときめんどいな、どうしよう
 	m.m.Lock()
 	defer m.m.Unlock()
 	statement := fmt.Sprintf(sqlDelete,
@@ -562,11 +690,84 @@ func (m *miRepSQLiteImpl) RepName() string {
 }
 
 func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou, error) {
-	panic("not implemented") // TODO: Implement
+	word = strings.ToLower(word)
+	kyous := []*kyou.Kyou{}
+
+	checkStateInfos, err := m.getAllCheckStateInfos(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks, _ := m.GetAllTasks(ctx)
+	if tasks != nil {
+		for _, task := range tasks {
+			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+			if err != nil {
+				return nil, err
+			}
+			if strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), word) {
+				kyous = append(kyous, &kyou.Kyou{
+					ID:          taskInfo.Task.TaskID,
+					Time:        taskInfo.Task.CreatedTime,
+					RepName:     m.RepName(),
+					ImageSource: "",
+				})
+			}
+			for _, checkStateInfo := range checkStateInfos {
+				if checkStateInfo.TaskID == taskInfo.Task.TaskID {
+					kyous = append(kyous, &kyou.Kyou{
+						ID:          checkStateInfo.CheckStateID,
+						Time:        checkStateInfo.UpdatedTime,
+						RepName:     m.RepName(),
+						ImageSource: "",
+					})
+				}
+			}
+		}
+	}
+	return kyous, nil
 }
 
 func (m *miRepSQLiteImpl) UpdateCache() error {
 	return nil
+}
+
+func (m *miRepSQLiteImpl) getAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, error) {
+	checkStateInfos := []*CheckStateInfo{}
+	statement := sqlGetAllCheckStateInfos
+	rows, err := m.db.QueryContext(ctx, statement)
+	if err != nil {
+		err = fmt.Errorf("error at get all tasks: %w", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			checkStateInfo := &CheckStateInfo{}
+			updatedTimeStr := ""
+			err := rows.Scan(&checkStateInfo.CheckStateID,
+				&checkStateInfo.TaskID,
+				&updatedTimeStr,
+				&checkStateInfo.IsChecked)
+			if err != nil {
+				err = fmt.Errorf("error at get check state info: %w", err)
+				return nil, err
+			}
+
+			checkStateInfo.UpdatedTime, err = time.Parse(TimeLayout, updatedTimeStr)
+			if err != nil {
+				err = fmt.Errorf("error at parse time: %w", err)
+				return nil, err
+			}
+
+			checkStateInfos = append(checkStateInfos, checkStateInfo)
+		}
+	}
+	return checkStateInfos, nil
 }
 
 func escapeSQLite(str string) string {
