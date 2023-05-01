@@ -23,6 +23,10 @@ import DeleteTagResponse from "./DeleteTagResponse";
 import DeleteTextRequest from "./DeleteTextRequest";
 import DeleteTextResponse from "./DeleteTextResponse";
 import AddTaskResponse from "./AddTaskResponse";
+import GetTagRequest from "./GetTagRequest";
+import GetTagResponse from "./GetTagResponse";
+import GetTextRequest from "./GetTextRequest";
+import GetTextResponse from "./GetTextResponse";
 
 const get_board_struct_address = "/api/board_struct"
 const get_tag_struct_address = "/api/tag_struct"
@@ -35,6 +39,8 @@ const add_tag_address = "/api/tag"
 const add_text_address = "/api/text"
 const get_tags_related_task_address = "/api/task_tag"
 const get_texts_related_task_address = "/api/task_text"
+const get_tag_address = "/api/tag"
+const get_text_address = "/api/tag"
 const delete_tag_address = "/api/tag"
 const delete_text_address = "/api/tag"
 const get_board_struct_method = "get"
@@ -50,6 +56,8 @@ const get_tags_related_task_method = "get"
 const get_texts_related_task_method = "get"
 const delete_tag_method = "delete"
 const delete_text_method = "delete"
+const get_tag_method = "tag"
+const get_text_method = "get"
 
 export default class MiServerAPI {
     public async get_board_struct(get_board_struct_request: GetBoardStructRequest): Promise<GetBoardStructResponse> {
@@ -206,6 +214,30 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: DeleteTextResponse = json
+        return response
+    }
+    public async get_tag(get_tag_request: GetTagRequest): Promise<GetTagResponse> {
+        const res = await fetch(delete_tag_address, {
+            method: get_tag_method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(get_tag_request),
+        })
+        const json = await res.json()
+        const response: GetTagResponse = json
+        return response
+    }
+    public async get_text(get_text_request: GetTextRequest): Promise<GetTextResponse> {
+        const res = await fetch(delete_text_address, {
+            method: get_text_method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(get_text_request),
+        })
+        const json = await res.json()
+        const response: GetTextResponse = json
         return response
     }
 }
