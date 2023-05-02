@@ -31,21 +31,22 @@ import TaskInfo from '@/api/data_struct/TaskInfo';
 import { Ref, ref, watch } from 'vue';
 
 interface Props {
-    show: boolean
     task_info: TaskInfo
 }
 
 const props = defineProps<Props>()
 const emits = defineEmits<{
     (e: 'errors', errors: Array<string>): void
-    (e: 'added_task'): void
+    (e: 'added_task', task_info: TaskInfo): void
 }>()
 
 let task_title: Ref<string> = ref("")
-let is_show: Ref<boolean> = ref(props.show)
+let is_show: Ref<boolean> = ref(false)
 
-watch(() => props.show, () => {
-    is_show.value = props.show
+defineExpose({ show })
+
+watch(() => is_show.value, () => {
+    is_show.value = is_show.value
 })
 
 function close_dialog() {
@@ -64,10 +65,13 @@ function submit() {
                 emit_errors(res.errors)
                 return
             }
-            emit_added_task()
+            emit_added_task(request.task_info)
             clear_fields()
             close_dialog()
         })
+}
+function show() {
+    is_show.value = true
 }
 function clear_fields() {
     //TODO すべての入力情報を消す
@@ -76,8 +80,8 @@ function clear_fields() {
 function emit_errors(errors: Array<string>) {
     emits("errors", errors)
 }
-function emit_added_task() {
-    emits("added_task")
+function emit_added_task(added_task_info: TaskInfo) {
+    emits("added_task", added_task_info)
 }
 </script>
 

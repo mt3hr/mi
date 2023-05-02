@@ -4,7 +4,7 @@
             <v-card-title>
                 テキスト追加
             </v-card-title>
-            <v-text-area v-model="text" tabindex="101" />
+            <v-textarea v-model="text" tabindex="101" />
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
@@ -31,7 +31,6 @@ import TaskInfo from '@/api/data_struct/TaskInfo';
 import { Ref, ref, watch } from 'vue';
 
 interface Props {
-    show: boolean
     task_info: TaskInfo
 }
 
@@ -42,10 +41,12 @@ const emits = defineEmits<{
 }>()
 
 let text: Ref<string> = ref("")
-let is_show: Ref<boolean> = ref(props.show)
+let is_show: Ref<boolean> = ref(false)
 
-watch(() => props.show, () => {
-    is_show.value = props.show
+defineExpose({show})
+
+watch(() => is_show.value, () => {
+    is_show.value = is_show.value
 })
 
 function close_dialog() {
@@ -69,6 +70,9 @@ function submit() {
             clear_fields()
             close_dialog()
         })
+}
+function show() {
+    is_show.value = true
 }
 function clear_fields() {
     text.value = ""
