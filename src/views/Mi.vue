@@ -1,34 +1,52 @@
 <template>
-    <textVue :text="t" />
-    <tagVue :tag="tag" />
-    <add_tag_dialog :show="true" :task_info="task_info"></add_tag_dialog>
-    <table>
-    <tag_struct :struct="tag_struct_object" :group_name="''" :open="true"></tag_struct>
-    </table>
+    <v-dialog v-model="show_new_task_dialog" class="new_task_dialog">
+        <v-card class="new_task_card pa-3">
+            <v-card-title>新規</v-card-title>
+            <v-text-field v-model="task_title" type="text" placeholder="タイトル" />
+            <v-textarea v-model="task_memo" placeholder="メモ" />
+            <v-checkbox v-model="task_has_limit" label="期限" />
+            <VueDatePicker v-if="task_has_limit" v-model="task_limit" placeholder="期限日時" :format="format_date_time"
+                :flow="['calendar', 'time']" />
+            <v-card-actions>
+                <v-row>
+                    <v-spacer />
+                    <v-col cols="auto">
+                        <v-btn>追加</v-btn>
+                    </v-col>
+                </v-row>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
 </template>
 
 <script setup lang="ts">
-import Tag from '@/api/data_struct/Tag';
-import textVue from './text/text.vue';
-import tagVue from './tag/tag.vue';
-import Text from '@/api/data_struct/Text';
-import { Ref, ref } from 'vue';
-import TaskInfo from '@/api/data_struct/TaskInfo';
-import add_tag_dialog from './dialog/add_tag_dialog.vue';
-import tag_struct from './sidebar/tag_struct.vue';
+import { ref, Ref, watch } from 'vue'
+import VueDatePicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
 
-let t: Ref<Text> = ref(new Text())
-t.value.text = "hoge"
-let tag: Ref<Tag> = ref(new Tag())
-tag.value.tag = "tag"
-let task_info: Ref<TaskInfo> = ref(new TaskInfo())
+let show_new_task_dialog: Ref<boolean> = ref(true)
+let task_title: Ref<string> = ref("")
+let task_memo: Ref<string> = ref("")
+let task_has_limit: Ref<boolean> = ref(false)
+let task_limit: Ref<string> = ref("")
 
-let tag_struct_object: Ref<any> = ref({
-    "hoge": "tag",
-    "fuga": {
-        "piyo": "tag"
+function format_date_time(date: Date): string {
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString()
+}
+
+watch(task_has_limit, (new_value: boolean, old_value: boolean) => {
+    if (!new_value) {
+        task_limit.value = ""
     }
 })
 </script>
 
-<style></style>
+<style>
+.new_task_card {
+    overflow-y: hidden !important;
+}
+
+.new_task_dialog {
+    max-width: 600px;
+}
+</style>
