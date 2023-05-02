@@ -48,6 +48,9 @@ const get_tag_address = "/api/tag"
 const get_text_address = "/api/tag"
 const delete_tag_address = "/api/tag"
 const delete_text_address = "/api/tag"
+const get_tag_names_address = "/api/tag_names"
+const get_board_names_address = "/api/board_names"
+const get_application_config_address = "/api/application_config"
 const get_board_struct_method = "get"
 const get_tag_struct_method = "get"
 const add_task_method = "post"
@@ -63,6 +66,9 @@ const delete_tag_method = "delete"
 const delete_text_method = "delete"
 const get_tag_method = "tag"
 const get_text_method = "get"
+const get_tag_names_method = "get"
+const get_board_names_method = "get"
+const get_application_config_method = "get"
 
 func Execute() {
 	if err := cmd.Execute(); err != nil {
@@ -265,21 +271,17 @@ type Config struct {
 			KeyFile  string
 		}
 		EnableDeleteAction bool
-		OpenFile           struct {
-			EnableOpenDirectoryCmd bool
-			OpenDirectoryCmd       string
-			EnableOpenFileCmd      bool
-			OpenFileCmd            string
-		}
 	}
 
-	ApplicationConfig struct {
-		HiddenTags  []string
-		UnCheckTags []string
+	ApplicationConfig ApplicationConfig `yaml:"ApplicationConfig"`
+}
 
-		BoardStruct interface{} `yaml:"BoardStruct"`
-		TagStruct   interface{} `yaml:"TagStruct"`
-	} `yaml:"ApplicationConfig"`
+type ApplicationConfig struct {
+	HiddenTags  []string `json:"hidden_tags"`
+	UnCheckTags []string `json:"un_check_tags"`
+
+	BoardStruct interface{} `yaml:"BoardStruct" json:"board_struct"`
+	TagStruct   interface{} `yaml:"TagStruct" json:"tag_struct"`
 }
 
 func getConfigFile() string {
@@ -1297,308 +1299,113 @@ func launchServer() error {
 		}
 		response.Text = text
 	}).Methods(get_text_method)
-	/*
-		// 各Delete
-		if config.ServerConfig.EnableDeleteAction {
+
+	router.HandleFunc(get_tag_names_address, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		request := &GetTagNamesRequest{}
+		response := &GetTagNamesResponse{}
+
+		defer r.Body.Close()
+		defer func() {
+			err := json.NewEncoder(w).Encode(response)
+			if err != nil {
+				panic(err)
+			}
+		}()
+
+		err := json.NewDecoder(r.Body).Decode(request)
+		if err != nil {
+			panic(err)
 		}
 
-		// Tags
-		router.HandleFunc("/api/kyou/{id}/tags/",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				vars := mux.Vars(r)
-				target := vars["id"]
+		tagNames := map[string]interface{}{}
+		for _, tagRep := range repositories.TagReps {
+			tags, err := tagRep.GetAllTags(r.Context())
+			if err != nil {
+				response.Errors = append(response.Errors, "タグ一覧の取得に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			for _, tag := range tags {
+				tagNames[tag.Tag] = struct{}{}
+			}
+		}
+		tags := []string{}
+		for tagName := range tagNames {
+			if tagName != kyou.DeletedTagName {
+				tags = append(tags, strings.TrimSpace(tagName))
+			}
+		}
+		sort.Slice(tags, func(i, j int) bool {
+			return tags[i] < tags[j]
+		})
+		response.TagNames = tags
+	}).Methods(get_tag_names_method)
 
-				matchTags := []*tag.Tag{}
-				for _, tagRep := range repositories.TagReps {
-					tags, err := tagRep.GetTagsByTarget(r.Context(), target)
-					if err != nil {
-						if errors.Is(err, context.Canceled) {
-							w.WriteHeader(499) // Client Closed Request
-							return
-						}
-						err = fmt.Errorf("error at get tags by target %s from %s: %w", target, tagRep.Path(), err)
-						err = fmt.Errorf("error at get /api/kyou/%s/tags/: %w", target, err)
-						fmt.Fprintln(os.Stderr, err.Error())
-						w.WriteHeader(http.StatusInternalServerError)
-						return
-					}
-					matchTags = append(matchTags, tags...)
-				}
-				matchTagsMap := map[string]*tag.Tag{}
-				for _, matchTag := range matchTags {
-					if _, exist := matchTagsMap[matchTag.ID]; !exist {
-						matchTagsMap[matchTag.ID] = matchTag
-					}
-				}
-				matchTags = []*tag.Tag{}
-				for _, matchTag := range matchTagsMap {
-					matchTags = append(matchTags, matchTag)
-				}
-				sortTagsByTime(matchTags)
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(matchTags)
-			}).Methods("GET")
-		router.HandleFunc("/api/kyou/{id}/tags/",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "text/plain")
-				vars := mux.Vars(r)
-				target := vars["id"]
-				defer r.Body.Close()
-				tagRequest := &TagRequest{}
-				err := json.NewDecoder(r.Body).Decode(tagRequest)
+	router.HandleFunc(get_board_names_address, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		request := &GetBoardNamesRequest{}
+		response := &GetBoardNamesResponse{}
+
+		defer r.Body.Close()
+		defer func() {
+			err := json.NewEncoder(w).Encode(response)
+			if err != nil {
+				panic(err)
+			}
+		}()
+
+		err := json.NewDecoder(r.Body).Decode(request)
+		if err != nil {
+			panic(err)
+		}
+
+		boardNames := map[string]interface{}{}
+		for _, miRep := range repositories.MiReps {
+			tasks, err := miRep.GetAllTasks(r.Context())
+			if err != nil {
+				response.Errors = append(response.Errors, "板一覧の取得に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			for _, task := range tasks {
+				boardInfo, err := miRep.GetLatestBoardInfoFromTaskID(r.Context(), task.TaskID)
 				if err != nil {
-					err = fmt.Errorf("error at decode json: %w", err)
-					err = fmt.Errorf("error at post /api/kyou/%s/tags: %w", target, err)
-					fmt.Fprintln(os.Stderr, err.Error())
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
-				tag := &tag.Tag{
-					Target: target,
-					Tag:    tagRequest.Tag,
-					ID:     kyou.NewID(),
-					Time:   time.Now(),
-				}
-				err = repositories.TagRep.AddTag(tag)
-				if err != nil {
-					err = fmt.Errorf("error at add tag: %w", err)
-					err = fmt.Errorf("error at post /api/kyuo/%s/tags: %w", target, err)
-					fmt.Fprintln(os.Stderr, err.Error())
+					response.Errors = append(response.Errors, "板一覧の取得に失敗しました")
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				w.WriteHeader(http.StatusOK)
-			}).Methods("POST")
-		router.HandleFunc("/api/tag/{id}",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				vars := mux.Vars(r)
-				id := vars["id"]
+				boardNames[boardInfo.BoardName] = struct{}{}
+			}
+		}
+		boardNamesList := []string{}
+		sort.Slice(boardNamesList, func(i, j int) bool {
+			return boardNamesList[i] < boardNamesList[j]
+		})
+		response.BoardNames = boardNamesList
 
-				ctx := r.Context()
-				var tagRep tag.TagRep
-				for _, tr := range repositories.TagReps {
-					_, err := tr.GetTagByID(ctx, id)
-					if err != nil {
-						continue
-					}
-					tagRep = tr
-				}
-				if tagRep == nil {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
+	}).Methods(get_board_names_method)
 
-				tags, err := tagRep.GetAllTags(r.Context())
-				if err != nil {
-					if errors.Is(err, context.Canceled) {
-						w.WriteHeader(499) // Client Closed Request
-						return
-					}
-					err = fmt.Errorf("error at get all tags from %s: %w", tagRep.Path(), err)
-					err = fmt.Errorf("error at get /api/tag/%s: %w", id, err)
-					fmt.Fprintln(os.Stderr, err.Error())
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				for _, tag := range tags {
-					if tag.ID == id {
-						json.NewEncoder(w).Encode(tag)
-					}
-				}
-				w.WriteHeader(http.StatusNotFound)
-			}).Methods("GET")
+	router.HandleFunc(get_application_config_address, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		request := &GetApplicationConfigRequest{}
+		response := &GetApplicationConfigResponse{}
 
-		// Texts
-		router.HandleFunc("/api/kyou/{id}/texts/",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				vars := mux.Vars(r)
-				target := vars["id"]
+		defer r.Body.Close()
+		defer func() {
+			err := json.NewEncoder(w).Encode(response)
+			if err != nil {
+				panic(err)
+			}
+		}()
 
-				matchTexts := []*text.Text{}
-				for _, textRep := range repositories.TextReps {
-					texts, err := textRep.GetTextsByTarget(r.Context(), target)
-					if err != nil {
-						if errors.Is(err, context.Canceled) {
-							w.WriteHeader(499) // Client Closed Request
-							return
-						}
-						err = fmt.Errorf("error at get texts by target %s from %s: %w", target, textRep.Path(), err)
-						err = fmt.Errorf("error at get /api/kyou/%s/texts/: %w", target, err)
-						fmt.Fprintln(os.Stderr, err.Error())
-						w.WriteHeader(http.StatusInternalServerError)
-						return
-					}
-					matchTexts = append(matchTexts, texts...)
-				}
+		err := json.NewDecoder(r.Body).Decode(request)
+		if err != nil {
+			panic(err)
+		}
 
-				matchTextsMap := map[string]*text.Text{}
-				for _, matchText := range matchTexts {
-					if _, exist := matchTextsMap[matchText.ID]; !exist {
-						matchTextsMap[matchText.ID] = matchText
-					}
-				}
-				matchTexts = []*text.Text{}
-				for _, matchText := range matchTextsMap {
-					matchTexts = append(matchTexts, matchText)
-				}
-				sortTextsByTime(matchTexts)
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(matchTexts)
-			}).Methods("GET")
-		router.HandleFunc("/api/kyou/{id}/texts/",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				vars := mux.Vars(r)
-				target := vars["id"]
-				defer r.Body.Close()
-				textRequest := &TextRequest{}
-				err := json.NewDecoder(r.Body).Decode(textRequest)
-				if err != nil {
-					err = fmt.Errorf("error at decode json: %w", err)
-					err = fmt.Errorf("error at post /api/kyou/%s/texts: %w", target, err)
-					fmt.Fprintln(os.Stderr, err.Error())
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
-				text := &text.Text{
-					Target: target,
-					Text:   textRequest.Text,
-					ID:     kyou.NewID(),
-					Time:   time.Now(),
-				}
-				err = repositories.TextRep.AddText(text)
-				if err != nil {
-					err = fmt.Errorf("error at add text: %w", err)
-					err = fmt.Errorf("error at post /api/kyuo/%s/text: %w", target, err)
-					fmt.Fprintln(os.Stderr, err.Error())
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				w.WriteHeader(http.StatusOK)
-			}).Methods("POST")
-		router.HandleFunc("/api/text/{id}",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				vars := mux.Vars(r)
-				id := vars["id"]
-
-				ctx := r.Context()
-				var textRep text.TextRep
-				for _, tr := range repositories.TextReps {
-					_, err := tr.GetTextByID(ctx, id)
-					if err != nil {
-						continue
-					}
-					textRep = tr
-				}
-				if textRep == nil {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-
-				texts, err := textRep.GetAllTexts(r.Context())
-				if err != nil {
-					if errors.Is(err, context.Canceled) {
-						w.WriteHeader(499) // Client Closed Request
-						return
-					}
-					err = fmt.Errorf("error at get all texts from %s: %w", textRep.Path(), err)
-					err = fmt.Errorf("error at get /api/text/%s: %w", id, err)
-					fmt.Fprintln(os.Stderr, err.Error())
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				for _, text := range texts {
-					if text.ID == id {
-						json.NewEncoder(w).Encode(text)
-						return
-					}
-				}
-				w.WriteHeader(http.StatusNotFound)
-			}).Methods("GET")
-
-
-		router.HandleFunc("/api/reps",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				repNamesListed := []string{}
-				for _, rep := range repositories.MiReps {
-					repNamesListed = append(repNamesListed, strings.TrimSpace(rep.RepName()))
-				}
-
-				// 読み込み順を保持しつつ重複回避
-				repNames := []string{}
-				addedRepNames := []string{}
-				for _, repName := range repNamesListed {
-					added := false
-					for _, addedRepName := range addedRepNames {
-						if repName == addedRepName {
-							added = true
-							break
-						}
-					}
-					if !added {
-						repNames = append(repNames, repName)
-						addedRepNames = append(addedRepNames, repName)
-					}
-				}
-
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(repNames)
-			}).Methods("GET")
-		router.HandleFunc("/api/tags",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				tagNames := map[string]interface{}{}
-				for _, tagRep := range repositories.TagReps {
-					tags, err := tagRep.GetAllTags(r.Context())
-					if err != nil {
-						if errors.Is(err, context.Canceled) {
-							w.WriteHeader(499) // Client Closed Request
-							return
-						}
-						err = fmt.Errorf("error at get all tags from %s: %w", tagRep.Path(), err)
-						err = fmt.Errorf("error at get /api/tags: %w", err)
-						fmt.Fprintln(os.Stderr, err.Error())
-						w.WriteHeader(http.StatusInternalServerError)
-						return
-					}
-					for _, tag := range tags {
-						tagNames[tag.Tag] = struct{}{}
-					}
-				}
-				tags := []string{}
-				for tagName := range tagNames {
-					if tagName != kyou.DeletedTagName {
-						tags = append(tags, strings.TrimSpace(tagName))
-					}
-				}
-				sort.Slice(tags, func(i, j int) bool {
-					return tags[i] < tags[j]
-				})
-				tags = append([]string{NoTag}, tags...)
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(tags)
-			}).Methods("GET")
-
-		router.HandleFunc("/api/options",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				options := &Option{
-					HiddenTags:         config.ApplicationConfig.HiddenTags,
-					UnCheckTags:        config.ApplicationConfig.UnCheckTags,
-					BoardStruct:        config.ApplicationConfig.BoardStruct,
-					TagStruct:          config.ApplicationConfig.TagStruct,
-					EnableDeleteAction: config.ServerConfig.EnableDeleteAction,
-				}
-				encoder := json.NewEncoder(w)
-				w.WriteHeader(http.StatusOK)
-				encoder.Encode(options)
-			}).Methods("GET")
-	*/
+		response.ApplicationConfig = config.ApplicationConfig
+	}).Methods(get_application_config_method)
 
 	html, err := fs.Sub(htmlFS, "html") //TODO
 	if err != nil {

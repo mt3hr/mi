@@ -27,6 +27,13 @@ import GetTagRequest from "./GetTagRequest";
 import GetTagResponse from "./GetTagResponse";
 import GetTextRequest from "./GetTextRequest";
 import GetTextResponse from "./GetTextResponse";
+import AddTaskRequest from "./AddTaskRequest";
+import GetApplicationConfigRequest from "./GetApplicationConfigRequest";
+import GetApplicationConfigResponse from "./GetApplicationConfigResponse";
+import GetBoardNamesRequest from "./GetBoardNamesRequest";
+import GetBoardNamesResponse from "./GetBoardNamesResponse";
+import GetTagNamesRequest from "./GetTagNamesRequest";
+import GetTagNamesResponse from "./GetTagNamesResponse";
 
 const get_board_struct_address = "/api/board_struct"
 const get_tag_struct_address = "/api/tag_struct"
@@ -43,6 +50,9 @@ const get_tag_address = "/api/tag"
 const get_text_address = "/api/tag"
 const delete_tag_address = "/api/tag"
 const delete_text_address = "/api/tag"
+const get_tag_names_address = "/api/tag_names"
+const get_board_names_address = "/api/board_names"
+const get_application_config_address = "/api/application_config"
 const get_board_struct_method = "get"
 const get_tag_struct_method = "get"
 const add_task_method = "post"
@@ -58,6 +68,9 @@ const delete_tag_method = "delete"
 const delete_text_method = "delete"
 const get_tag_method = "tag"
 const get_text_method = "get"
+const get_tag_names_method = "get"
+const get_board_names_method = "get"
+const get_application_config_method = "get"
 
 export default class MiServerAPI {
     public async get_board_struct(get_board_struct_request: GetBoardStructRequest): Promise<GetBoardStructResponse> {
@@ -84,7 +97,7 @@ export default class MiServerAPI {
         const response: GetTagStructResponse = json
         return response
     }
-    public async add_task(add_task_request: AddTagRequest): Promise<AddTagResponse> {
+    public async add_task(add_task_request: AddTaskRequest): Promise<AddTagResponse> {
         const res = await fetch(add_task_address, {
             method: add_task_method,
             headers: {
@@ -217,7 +230,7 @@ export default class MiServerAPI {
         return response
     }
     public async get_tag(get_tag_request: GetTagRequest): Promise<GetTagResponse> {
-        const res = await fetch(delete_tag_address, {
+        const res = await fetch(get_tag_address, {
             method: get_tag_method,
             headers: {
                 'Content-Type': 'application/json'
@@ -229,7 +242,7 @@ export default class MiServerAPI {
         return response
     }
     public async get_text(get_text_request: GetTextRequest): Promise<GetTextResponse> {
-        const res = await fetch(delete_text_address, {
+        const res = await fetch(get_text_address, {
             method: get_text_method,
             headers: {
                 'Content-Type': 'application/json'
@@ -238,6 +251,45 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: GetTextResponse = json
+        return response
+    }
+
+    public async get_tag_names(get_tag_names_request: GetTagNamesRequest): Promise<GetTagNamesResponse> {
+        const res = await fetch(get_tag_names_address, {
+            method: get_tag_names_method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(get_tag_names_request),
+        })
+        const json = await res.json()
+        const response: GetTagNamesResponse = json
+        return response
+    }
+
+    public async get_board_names(get_board_names_request: GetBoardNamesRequest): Promise<GetBoardNamesResponse> {
+        const res = await fetch(get_board_names_address, {
+            method: get_board_names_method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(get_board_names_request),
+        })
+        const json = await res.json()
+        const response: GetBoardNamesResponse = json
+        return response
+    }
+
+    public async get_application_config(get_application_config_request: GetApplicationConfigRequest): Promise<GetApplicationConfigResponse> {
+        const res = await fetch(get_application_config_address, {
+            method: get_application_config_method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(get_application_config_request),
+        })
+        const json = await res.json()
+        const response: GetApplicationConfigResponse = json
         return response
     }
 }
