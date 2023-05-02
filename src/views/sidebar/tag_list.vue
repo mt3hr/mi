@@ -1,17 +1,19 @@
 <template>
     <table class="taglist">
-        <tag_struct ref="tag_struct_ref" :group_name="''" :struct="tag_structure" :open="true" @updated_check_items_by_user="updated_checked_tags"
-            @click_items_by_user="check_only_tags" />
+        <tag_struct ref="tag_struct_ref" :group_name="''" :struct="tag_structure" :open="true"
+            @updated_check_items_by_user="updated_checked_tags" @click_items_by_user="check_only_tags" />
     </table>
 </template>
 <script setup lang="ts">
 import { Ref, ref, watch } from 'vue';
 import MiServerAPI from '@/api/MiServerAPI';
 import tag_struct from './tag_struct.vue';
+import GetTagNamesRequest from '@/api/GetTagNamesRequest';
+import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
 
 interface Props {
     checked_tags: Array<string>
-    option: any//TODO 型定義して。設計やり直しです
+    option: ApplicationConfig
 }
 
 const props = defineProps<Props>()
@@ -19,7 +21,6 @@ const emits = defineEmits<{
     (e: 'errors', errors: Array<string>): void
     (e: 'updated_by_user'): void
     (e: 'updated_checked_tags', tags: Array<string>): void
-    //TODO
 }>()
 
 let tags: Ref<any> = ref({})
@@ -28,6 +29,11 @@ let check_all: Ref<boolean> = ref(true)
 const tag_struct_ref = ref<InstanceType<typeof tag_struct> | null>(null);
 
 let api = new MiServerAPI()
+
+update_tags_promise()
+    .then(() => { return check_all_tags_promise() })
+    .then(() => { return update_tag_struct_promise() })
+    .then(() => emits('updated_by_user'))
 
 watch(() => props.checked_tags, () => {
     for (let i = 0; i < tags.value.length; i++) {
@@ -158,7 +164,7 @@ function update_tag_struct_promise() {
                 }
 
             })
-            structed_tags.forEach((tag:any )=> {
+            structed_tags.forEach((tag: any) => {
                 let exist = false
                 for (let i = 0; i < tags.value.length; i++) {
                     if (tag == tags.value[i].tag) {
@@ -168,7 +174,7 @@ function update_tag_struct_promise() {
                 }
                 if (!exist) {
                     let check = true
-                    for (let i = 0; i < props.option.un_check_tags; i++) {
+                    for (let i = 0; i < props.option.un_check_tags.length; i++) {
                         if (tag === props.option.un_check_tags[i]) {
                             check = false
                             break
@@ -186,10 +192,10 @@ function update_tag_struct_promise() {
 // タグを最新の状態に更新します。
 // タグの選択はすべてfalseに初期化されます。
 function update_tags_promise() {
-    return api.get_tag_names_promise()
-        .then((tags: any) => {
+    return api.get_tag_names(new GetTagNamesRequest())
+        .then((res) => {
             let tagsTemp: any = []
-            tags.forEach((tag: any) => {
+            res.tag_names.forEach((tag: any) => {
                 let t = {
                     tag: tag,
                     check: true
@@ -213,12 +219,12 @@ function notify_checked_tags() {
     emits('updated_checked_tags', tags)
 }
 // 渡された全てのtagに飲みチェックを入れ、他のタグのチェックを外します。
-function check_only_tags(tags: any) {
-    for (let i = 0; i < tags.length; i++) {
+function check_only_tags(tags_: any) {
+    for (let i = 0; i < tags.value.length; i++) {
         tags.value[i].check = false
     }
-    for (let i = 0; i < tags.length; i++) {
-        let tag = tags[i]
+    for (let i = 0; i < tags_.length; i++) {
+        let tag = tags_[i]
         for (let j = 0; j < tags.value.length; j++) {
             let t = tags.value[j]
             if (t.tag === tag) {

@@ -70,6 +70,10 @@ watch(() => props.struct, () => {
     update_check()
 })
 
+open_group.value = props.open
+updated_struct()
+update_check()
+
 // チェックボックスのチェック状態を最新の状態に更新します。
 // 親であれば子の状態を見ます
 function update_check() {

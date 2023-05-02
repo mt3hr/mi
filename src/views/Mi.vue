@@ -2,9 +2,8 @@
     <textVue :text="t" />
     <tagVue :tag="tag" />
     <add_tag_dialog :show="true" :task_info="task_info"></add_tag_dialog>
-    <table>
-    <tag_struct :struct="tag_struct_object" :group_name="''" :open="true"></tag_struct>
-    </table>
+    <tag_list :checked_tags="[]" :option="option" />
+    <board_list :option="option" />
 </template>
 
 <script setup lang="ts">
@@ -15,7 +14,9 @@ import Text from '@/api/data_struct/Text';
 import { Ref, ref } from 'vue';
 import TaskInfo from '@/api/data_struct/TaskInfo';
 import add_tag_dialog from './dialog/add_tag_dialog.vue';
-import tag_struct from './sidebar/tag_struct.vue';
+import tag_list from './sidebar/tag_list.vue';
+import board_list from './sidebar/board_list.vue'
+import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
 
 let t: Ref<Text> = ref(new Text())
 t.value.text = "hoge"
@@ -23,12 +24,22 @@ let tag: Ref<Tag> = ref(new Tag())
 tag.value.tag = "tag"
 let task_info: Ref<TaskInfo> = ref(new TaskInfo())
 
+
+let option: Ref<ApplicationConfig> = ref(new ApplicationConfig())
 let tag_struct_object: Ref<any> = ref({
     "hoge": "tag",
     "fuga": {
         "piyo": "tag"
     }
 })
+let board_struct_object: Ref<any> = ref({
+    "hoge": "board",
+    "fuga": {
+        "piyo": "board"
+    }
+})
+option.value.tag_struct = tag_struct_object.value
+option.value.board_struct = board_struct_object
 </script>
 
 <style></style>
