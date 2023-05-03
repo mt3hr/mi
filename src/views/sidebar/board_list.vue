@@ -25,8 +25,12 @@ const emits = defineEmits<{
 let boards: Ref<any> = ref({})
 let board_structure: Ref<any> = ref({})
 const board_struct_ref = ref<InstanceType<typeof board_struct> | null>(null);
+const selected_board: Ref<string> = ref("");
 
-let api = new MiServerAPI()
+defineExpose({
+    set_selected_board_by_application, 
+    get_selected_board
+})
 
 update_boards_promise()
     .then(() => { return update_board_struct_promise() })
@@ -121,6 +125,7 @@ function update_board_struct_promise() {
 // タグを最新の状態に更新します。
 // タグの選択はすべてfalseに初期化されます。
 function update_boards_promise() {
+    let api = new MiServerAPI()
     return api.get_board_names(new GetBoardNamesRequest())
         .then((res) => {
             let boardsTemp: any = []
@@ -133,6 +138,12 @@ function update_boards_promise() {
             boards.value = boardsTemp
         })
         .then(() => { return update_board_struct_promise() })
+}
+function get_selected_board(): string {
+    return selected_board.value
+}
+function set_selected_board_by_application(new_selected_board: string): void {
+    selected_board.value = new_selected_board
 }
 
 function emit_clicked_board() {

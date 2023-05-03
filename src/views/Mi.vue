@@ -1,4 +1,5 @@
 <template>
+    <!--
     <textVue :text="t" />
     <tagVue :tag="tag" />
     <add_tag_dialog :show="true" :task_info="task_info" />
@@ -9,9 +10,12 @@
     <add_task_dialog ref="add_task_dialog_ref" />
     <board :board_info="board_info" :task_infos="task_infos" />
     <sort_condition_selectbox @updated_sort_type="(sort_type) => { consolelog(sort_type) }" @errors="() => { }" />
+    -->
+    <sidebar :option="option" />
 </template>
 
 <script setup lang="ts">
+import sidebar from './sidebar/sidebar.vue';
 import sort_condition_selectbox from './sidebar/sort_condition_selectbox.vue';
 import Tag from '@/api/data_struct/Tag';
 import textVue from './text/text.vue';

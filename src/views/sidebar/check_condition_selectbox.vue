@@ -1,10 +1,11 @@
 <template>
-    <v-select v-model="check_state" :label="'チェック状態'" :items="check_states" item-title="title" item-value="value" @update:model-value="emit_updated_check_condition" />
+    <v-select v-model="check_state" :label="'チェック状態'" :items="check_states" item-title="title" item-value="value"
+        @update:model-value="emit_updated_check_condition" />
 </template>
 
 <script setup lang="ts">
 import CheckState from '@/api/data_struct/CheckState';
-import { Ref, ref, nextTick } from 'vue';
+import { Ref, ref, nextTick, watch } from 'vue';
 class CheckStateSelectModel {
     title: string = ""
     value: CheckState = CheckState.NoCheckOnly
@@ -30,6 +31,18 @@ const emits = defineEmits<{
 
 const check_states: Ref<Array<CheckStateSelectModel>> = ref(check_state_select_model)
 const check_state: Ref<CheckState> = ref(CheckState.NoCheckOnly)
+
+defineExpose({
+    set_check_state_by_application, 
+    get_check_state
+})
+
+function get_check_state(): CheckState {
+    return check_state.value
+}
+function set_check_state_by_application(new_check_state: CheckState): void {
+    check_state.value = new_check_state
+}
 
 function emit_errors(errors: Array<string>) {
     emits("errors", errors)

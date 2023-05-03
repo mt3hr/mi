@@ -12,7 +12,6 @@ import GetTagNamesRequest from '@/api/GetTagNamesRequest';
 import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
 
 interface Props {
-    checked_tags: Array<string>
     option: ApplicationConfig
 }
 
@@ -27,23 +26,27 @@ let tags: Ref<any> = ref({})
 let tag_structure: Ref<any> = ref({})
 let check_all: Ref<boolean> = ref(true)
 const tag_struct_ref = ref<InstanceType<typeof tag_struct> | null>(null);
+const checked_tags: Ref<Array<string>> = ref(new Array<string>());
 
-let api = new MiServerAPI()
+defineExpose({
+    set_checked_tags_by_application,
+    get_checked_tags
+})
 
 update_tags_promise()
     .then(() => { return check_all_tags_promise() })
     .then(() => { return update_tag_struct_promise() })
     .then(() => emits('updated_by_user'))
 
-watch(() => props.checked_tags, () => {
+watch(() => checked_tags, () => {
     for (let i = 0; i < tags.value.length; i++) {
         let tag: any = tags.value[i]
         tag.check = false
     }
     for (let i = 0; i < tags.value.length; i++) {
         let tag: any = tags.value[i]
-        for (let j = 0; j < props.checked_tags.length; j++) {
-            let checked_tag = props.checked_tags[j]
+        for (let j = 0; j < checked_tags.value.length; j++) {
+            let checked_tag = checked_tags.value[j]
             if (tag.tag == checked_tag) {
                 tag.check = true
             }
@@ -192,6 +195,7 @@ function update_tag_struct_promise() {
 // タグを最新の状態に更新します。
 // タグの選択はすべてfalseに初期化されます。
 function update_tags_promise() {
+    let api = new MiServerAPI()
     return api.get_tag_names(new GetTagNamesRequest())
         .then((res) => {
             let tagsTemp: any = []
@@ -235,6 +239,12 @@ function check_only_tags(tags_: any) {
     }
     update_tag_struct_promise()
         .then(() => emits('updated_by_user'))
+}
+function get_checked_tags(): Array<string> {
+    return checked_tags.value
+}
+function set_checked_tags_by_application(new_checked_tags: Array<string>): void {
+    checked_tags.value = new_checked_tags
 }
 </script>
 

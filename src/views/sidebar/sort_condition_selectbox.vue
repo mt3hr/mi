@@ -5,17 +5,17 @@
 
 <script setup lang="ts">
 import SortType from '@/api/data_struct/SortType';
-import { Ref, ref, nextTick } from 'vue';
+import { Ref, ref, nextTick, watch } from 'vue';
 class SortTypeSelectModel {
     title: string = ""
     value: SortType = SortType.CreatedTimeDesc
 }
 const sort_type_select_model = new Array<SortTypeSelectModel>()
 const sort_type_created_time_desc = new SortTypeSelectModel()
-sort_type_created_time_desc.title = "チェック済みのみ"
+sort_type_created_time_desc.title = "作成日時順"
 sort_type_created_time_desc.value = SortType.CreatedTimeDesc
 const sort_type_limit_time_asc = new SortTypeSelectModel()
-sort_type_limit_time_asc.title = "全て"
+sort_type_limit_time_asc.title = "期限順"
 sort_type_limit_time_asc.value = SortType.LimitTimeAsc
 sort_type_select_model.push(sort_type_created_time_desc)
 sort_type_select_model.push(sort_type_limit_time_asc)
@@ -27,6 +27,18 @@ const emits = defineEmits<{
 
 const sort_types: Ref<Array<SortTypeSelectModel>> = ref(sort_type_select_model)
 const sort_type: Ref<SortType> = ref(SortType.CreatedTimeDesc)
+
+defineExpose({
+    set_sort_type_by_application,
+    get_sort_type
+})
+
+function get_sort_type(): SortType {
+    return sort_type.value
+}
+function set_sort_type_by_application(new_sort_type: SortType): void {
+    sort_type.value = new_sort_type
+}
 
 function emit_errors(errors: Array<string>) {
     emits("errors", errors)
