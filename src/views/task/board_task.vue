@@ -9,6 +9,7 @@
                     {{ title }}
                 </td>
                 <td v-if="limit">
+                    <p>期限: {{ limit.toLocaleString() }}</p>
                 </td>
             </tr>
         </table>
@@ -52,7 +53,6 @@ watch(() => props.task_info, () => {
     check.value = props.task_info.check_state_info.is_checked
     title.value = props.task_info.task_title_info.title
     limit.value = props.task_info.limit_info.limit
-    console.log(title.value)
 })
 
 
@@ -80,7 +80,7 @@ watch(check, () => {
                 emit_errors(res.errors)
                 return
             }
-            emits("updated_task", new_task_info)
+            emit_updated_task(new_task_info)
         })
 
 })

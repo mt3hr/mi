@@ -1,9 +1,9 @@
 <template>
-    <div class="tag" @contextmenu.prevent="show_contextmenu">
+    <span class="tag" @contextmenu.prevent="show_contextmenu">
         <p>{{ tag?.tag }}</p>
         <tag_contextmenu :tag="tag" :x="x_contextmenu" :y="y_contextmenu" @errors="emit_errors"
             @deleted_tag="emit_deleted_tag" ref="contextmenu" />
-    </div>
+    </span>
 </template>
 
 <script setup lang="ts">
@@ -39,4 +39,20 @@ function emit_deleted_tag() {
 }
 </script>
 
-<style></style>
+<style>
+.tag {
+  border: solid white 2px;
+  border-left: 0px;
+  color: blue;
+  cursor : pointer;
+  padding: 0 6px 0 2px;
+  font-size: small;
+  border-radius: 0 1em 1em 0;
+  background: lightgray;
+  display: inline-flex;
+}
+.tag::before {
+  content: "・";
+  color: white;
+}
+</style>

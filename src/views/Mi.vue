@@ -1,12 +1,11 @@
 <template>
-    <!--
     <textVue :text="t" />
     <tagVue :tag="tag" />
-    <add_tag_dialog :show="true" :task_info="task_info"></add_tag_dialog>
+    <add_tag_dialog :show="true" :task_info="task_info"/>
     <tag_list :checked_tags="[]" :option="option" />
     <board_list :option="option" />
-    -->
     <board_task :task_info="task_info" />
+    <detail_task :task_info="task_info"/>
     <add_task_dialog ref="add_task_dialog_ref" />
 </template>
 
@@ -23,6 +22,7 @@ import board_list from './sidebar/board_list.vue'
 import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
 import board_task from './task/board_task.vue';
 import add_task_dialog from './dialog/add_task_dialog.vue';
+import detail_task from './task/detail_task.vue';
 
 let t: Ref<Text> = ref(new Text())
 t.value.text = "hoge"
@@ -31,6 +31,7 @@ tag.value.tag = "tag"
 let task_info: Ref<TaskInfo> = ref(new TaskInfo())
 let new_task_info = new TaskInfo()
 new_task_info.task_title_info.title = "わかる"
+new_task_info.limit_info.limit = new Date(0)
 task_info.value = new_task_info
 const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(null);
 nextTick(() => {
@@ -54,12 +55,6 @@ let board_struct_object: Ref<any> = ref({
 })
 option.value.tag_struct = tag_struct_object.value
 option.value.board_struct = board_struct_object
-
-
-
-
-
-
 </script>
 
 <style></style>
