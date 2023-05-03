@@ -7,6 +7,7 @@
     <board_list :option="option" />
     -->
     <board_task :task_info="task_info" />
+    <add_task_dialog ref="add_task_dialog_ref" />
 </template>
 
 <script setup lang="ts">
@@ -14,13 +15,14 @@ import Tag from '@/api/data_struct/Tag';
 import textVue from './text/text.vue';
 import tagVue from './tag/tag.vue';
 import Text from '@/api/data_struct/Text';
-import { Ref, ref } from 'vue';
+import { Ref, ref, nextTick } from 'vue';
 import TaskInfo from '@/api/data_struct/TaskInfo';
 import add_tag_dialog from './dialog/add_tag_dialog.vue';
 import tag_list from './sidebar/tag_list.vue';
 import board_list from './sidebar/board_list.vue'
 import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
 import board_task from './task/board_task.vue';
+import add_task_dialog from './dialog/add_task_dialog.vue';
 
 let t: Ref<Text> = ref(new Text())
 t.value.text = "hoge"
@@ -30,6 +32,10 @@ let task_info: Ref<TaskInfo> = ref(new TaskInfo())
 let new_task_info = new TaskInfo()
 new_task_info.task_title_info.title = "わかる"
 task_info.value = new_task_info
+const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(null);
+nextTick(() => {
+    add_task_dialog_ref.value?.show()
+})
 
 //TODO タスクのタイトルが更新されないんだが？
 
@@ -48,6 +54,12 @@ let board_struct_object: Ref<any> = ref({
 })
 option.value.tag_struct = tag_struct_object.value
 option.value.board_struct = board_struct_object
+
+
+
+
+
+
 </script>
 
 <style></style>
