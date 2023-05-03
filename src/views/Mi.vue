@@ -1,12 +1,13 @@
 <template>
     <textVue :text="t" />
     <tagVue :tag="tag" />
-    <add_tag_dialog :show="true" :task_info="task_info"/>
+    <add_tag_dialog :show="true" :task_info="task_info" />
     <tag_list :checked_tags="[]" :option="option" />
     <board_list :option="option" />
     <board_task :task_info="task_info" />
-    <detail_task :task_info="task_info"/>
+    <detail_task :task_info="task_info" />
     <add_task_dialog ref="add_task_dialog_ref" />
+    <board :board_info="board_info" :task_infos="task_infos" />
 </template>
 
 <script setup lang="ts">
@@ -23,6 +24,8 @@ import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
 import board_task from './task/board_task.vue';
 import add_task_dialog from './dialog/add_task_dialog.vue';
 import detail_task from './task/detail_task.vue';
+import board from './board/board.vue';
+import BoardInfo from '@/api/data_struct/BoardInfo';
 
 let t: Ref<Text> = ref(new Text())
 t.value.text = "hoge"
@@ -37,6 +40,12 @@ const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(nul
 nextTick(() => {
     add_task_dialog_ref.value?.show()
 })
+
+const board_info: Ref<BoardInfo> = ref(new BoardInfo())
+board_info.value.board_name = "Inbox"
+const task_infos: Ref<Array<TaskInfo>> = ref(new Array<TaskInfo>())
+task_infos.value.push(task_info.value)
+
 
 //TODO タスクのタイトルが更新されないんだが？
 
