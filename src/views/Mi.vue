@@ -8,9 +8,11 @@
     <detail_task :task_info="task_info" />
     <add_task_dialog ref="add_task_dialog_ref" />
     <board :board_info="board_info" :task_infos="task_infos" />
+    <sort_condition_selectbox @updated_sort_type="(sort_type) => { consolelog(sort_type) }" @errors="() => { }" />
 </template>
 
 <script setup lang="ts">
+import sort_condition_selectbox from './sidebar/sort_condition_selectbox.vue';
 import Tag from '@/api/data_struct/Tag';
 import textVue from './text/text.vue';
 import tagVue from './tag/tag.vue';
@@ -64,6 +66,9 @@ let board_struct_object: Ref<any> = ref({
 })
 option.value.tag_struct = tag_struct_object.value
 option.value.board_struct = board_struct_object
+function consolelog(value: any) {
+    console.log(value)
+}
 </script>
 
 <style></style>
