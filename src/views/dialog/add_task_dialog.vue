@@ -73,7 +73,7 @@ function update_board_names() {
     const request = new GetBoardNamesRequest()
     api.get_board_names(request)
         .then(res => {
-            if (res.errors.length != 0) {
+            if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
                 return
             }
@@ -95,7 +95,7 @@ function submit() {
     request.task_info = construct_task_info()
     api.add_task(request)
         .then(res => {
-            if (res.errors.length != 0) {
+            if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
                 return
             }

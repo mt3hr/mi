@@ -104,7 +104,7 @@ watch(check, () => {
 
     api.update_task(update_request)
         .then(res => {
-            if (res.errors.length != 0) {
+            if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
                 return
             }
@@ -118,7 +118,7 @@ function update_tags() {
     request.task_id = props.task_info.task.task_id
     api.get_tags_related_task(request)
         .then(res => {
-            if (res.errors.length != 0) {
+            if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
                 return
             }
@@ -131,7 +131,7 @@ function update_texts() {
     request.task_id = props.task_info.task.task_id
     api.get_texts_related_task(request)
         .then(res => {
-            if (res.errors.length != 0) {
+            if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
                 return
             }

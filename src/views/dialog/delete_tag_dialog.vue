@@ -59,7 +59,7 @@ function delete_tag() {
     request.tag_id = props.tag.id
     api.delete_tag(request)
         .then(res => {
-            if (res.errors.length != 0) {
+            if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
                 return
             }

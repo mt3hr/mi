@@ -62,7 +62,7 @@ function submit() {
     request.task_id = props.task_info.task.task_id
     api.add_tag(request)
         .then(res => {
-            if (res.errors.length != 0) {
+            if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
                 return
             }

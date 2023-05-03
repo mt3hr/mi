@@ -49,7 +49,7 @@ function delete_text() {
     request.text_id = props.text.id
     api.delete_text(request)
         .then(res => {
-            if (res.errors.length != 0) {
+            if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
                 return
             }

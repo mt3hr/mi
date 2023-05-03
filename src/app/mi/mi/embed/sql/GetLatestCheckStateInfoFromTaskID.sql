@@ -1,10 +1,10 @@
 SELECT
-    LimitID,
+    CheckStateID,
     TaskID,
     UpdatedTime,
-    LimitTime
+    IsChecked
 FROM
-    LimitInfo
+    CheckStateInfo
 WHERE
     TaskID = '%s'
 ORDER BY

@@ -1,11 +1,12 @@
 <template>
+    <h2>タグ</h2>
     <table class="taglist">
         <tag_struct ref="tag_struct_ref" :group_name="''" :struct="tag_structure" :open="true"
             @updated_check_items_by_user="updated_checked_tags" @click_items_by_user="check_only_tags" />
     </table>
 </template>
 <script setup lang="ts">
-import { Ref, ref, watch } from 'vue';
+import { Ref, ref, watch, nextTick } from 'vue';
 import MiServerAPI from '@/api/MiServerAPI';
 import tag_struct from './tag_struct.vue';
 import GetTagNamesRequest from '@/api/GetTagNamesRequest';
@@ -33,10 +34,13 @@ defineExpose({
     get_checked_tags
 })
 
-update_tags_promise()
-    .then(() => { return check_all_tags_promise() })
-    .then(() => { return update_tag_struct_promise() })
-    .then(() => emits('updated_by_user'))
+
+nextTick(() => {
+    update_tags_promise()
+        .then(() => { return check_all_tags_promise() })
+        .then(() => { return update_tag_struct_promise() })
+        .then(() => emits('updated_by_user'))
+})
 
 watch(() => checked_tags, () => {
     for (let i = 0; i < tags.value.length; i++) {

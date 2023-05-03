@@ -33,42 +33,42 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const get_board_struct_address = "/api/board_struct"
-const get_tag_struct_address = "/api/tag_struct"
-const add_task_address = "/api/task"
-const update_task_address = "/api/task"
-const delete_task_address = "/api/task"
-const get_task_address = "/api/task"
-const get_tasks_from_board_address = "/api/board_task"
-const add_tag_address = "/api/tag"
-const add_text_address = "/api/text"
-const get_tags_related_task_address = "/api/task_tag"
-const get_texts_related_task_address = "/api/task_text"
-const get_tag_address = "/api/tag"
-const get_text_address = "/api/tag"
-const delete_tag_address = "/api/tag"
-const delete_text_address = "/api/tag"
-const get_tag_names_address = "/api/tag_names"
-const get_board_names_address = "/api/board_names"
-const get_application_config_address = "/api/application_config"
-const get_board_struct_method = "get"
-const get_tag_struct_method = "get"
+const get_board_struct_address = "/api/get_board_struct"
+const get_tag_struct_address = "/api/get_tag_struct"
+const add_task_address = "/api/add_task"
+const update_task_address = "/api/update_task"
+const delete_task_address = "/api/delete_task"
+const get_task_address = "/api/get_task"
+const get_tasks_from_board_address = "/api/get_board_task"
+const add_tag_address = "/api/add_tag"
+const add_text_address = "/api/add_text"
+const get_tags_related_task_address = "/api/get_task_tag"
+const get_texts_related_task_address = "/api/get_task_text"
+const get_tag_address = "/api/get_tag"
+const get_text_address = "/api/get_text"
+const delete_tag_address = "/api/delete_tag"
+const delete_text_address = "/api/delete_text"
+const get_tag_names_address = "/api/get_tag_names"
+const get_board_names_address = "/api/get_board_names"
+const get_application_config_address = "/api/get_application_config"
+const get_board_struct_method = "post"
+const get_tag_struct_method = "post"
 const add_task_method = "post"
-const update_task_method = "put"
-const delete_task_method = "delete"
-const get_task_method = "get"
-const get_tasks_from_board_method = "get"
+const update_task_method = "post"
+const delete_task_method = "post"
+const get_task_method = "post"
+const get_tasks_from_board_method = "post"
 const add_tag_method = "post"
 const add_text_method = "post"
-const get_tags_related_task_method = "get"
-const get_texts_related_task_method = "get"
-const delete_tag_method = "delete"
-const delete_text_method = "delete"
-const get_tag_method = "tag"
-const get_text_method = "get"
-const get_tag_names_method = "get"
-const get_board_names_method = "get"
-const get_application_config_method = "get"
+const get_tags_related_task_method = "post"
+const get_texts_related_task_method = "post"
+const delete_tag_method = "post"
+const delete_text_method = "post"
+const get_tag_method = "post"
+const get_text_method = "post"
+const get_tag_names_method = "post"
+const get_board_names_method = "post"
+const get_application_config_method = "post"
 
 func Execute() {
 	if err := cmd.Execute(); err != nil {
@@ -119,6 +119,7 @@ var (
 	cmd = &cobra.Command{
 		Use: "mi",
 		PersistentPreRun: func(_ *cobra.Command, _ []string) {
+			mi.Prepare()
 			err := loadConfig()
 			if err != nil {
 				log.Fatal(err)
@@ -273,7 +274,7 @@ type Config struct {
 		EnableDeleteAction bool
 	}
 
-	ApplicationConfig ApplicationConfig `yaml:"ApplicationConfig"`
+	ApplicationConfig ApplicationConfig `yaml:"ApplicationConfig" json:"application_config"`
 }
 
 type ApplicationConfig struct {
@@ -336,11 +337,11 @@ ApplicationConfig:
     no tag: tag
 
 Repositories:
-  Reps:
-  - type: mi_db
-    file: $HOME/Mi.db
   MiRep:
     type: mi_db
+    file: $HOME/Mi.db
+  MiReps:
+  - type: mi_db
     file: $HOME/Mi.db
   
   # タグ記録時の保存先データベースファイル
@@ -695,6 +696,17 @@ func loadConfig() error {
 func loadRepositories() error {
 	r := &Repositories{}
 
+	if config.Repositories.MiRep == nil {
+		err := fmt.Errorf("configファイルのRepositories.MiRepの項目が設定されていないかあるいは不正です")
+		return err
+	}
+	reps, err := LoadMiReps(config.Repositories.MiRep)
+	if err != nil {
+		err = fmt.Errorf("error at load rep: %w", err)
+		return err
+	}
+	r.MiRep = reps[0]
+
 	if config.Repositories.MiReps == nil {
 		err := fmt.Errorf("configファイルのRepositories.MiRepsの項目が設定されていないかあるいは不正です")
 		return err
@@ -1036,6 +1048,7 @@ func launchServer() error {
 		if err != nil {
 			response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
+			panic(err) //TODO keshite
 			return
 		}
 
@@ -1379,6 +1392,9 @@ func launchServer() error {
 			}
 		}
 		boardNamesList := []string{}
+		for boardName := range boardNames {
+			boardNamesList = append(boardNamesList, boardName)
+		}
 		sort.Slice(boardNamesList, func(i, j int) bool {
 			return boardNamesList[i] < boardNamesList[j]
 		})
@@ -1407,7 +1423,7 @@ func launchServer() error {
 		response.ApplicationConfig = config.ApplicationConfig
 	}).Methods(get_application_config_method)
 
-	html, err := fs.Sub(htmlFS, "html") //TODO
+	html, err := fs.Sub(htmlFS, "mi/mi/embed/html") //TODO
 	if err != nil {
 		return err
 	}

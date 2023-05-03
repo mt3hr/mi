@@ -1,7 +1,7 @@
 <template>
     <v-card>
         <v-card-title>
-            {{ board_info.board_name }}
+            {{ board_name }}
         </v-card-title>
         <board_task v-for="task_info in task_infos" :key="task_info.task.task_id" :task_info="task_info"
             @errors="emit_errors" @copied_task_id="emit_copied_task_id" @added_tag="emit_added_tag"
@@ -16,7 +16,7 @@ import board_task from '../task/board_task.vue';
 
 interface Props {
     task_infos: Array<TaskInfo>
-    board_info: BoardInfo
+    board_name: string
 }
 
 const props = defineProps<Props>()

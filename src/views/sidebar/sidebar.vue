@@ -1,11 +1,11 @@
 <template>
     <div>
+        <word_search_textbox @errors="emit_errors" @updated_search_word="updated_search_word"
+            ref="word_search_textbox_ref" />
         <check_condition_selectbox @errors="emit_errors" @updated_check_condition="updated_check_condition"
             ref="check_condition_selectbox_ref" />
         <sort_condition_selectbox @errors="emit_errors" @updated_sort_type="updated_sort_type"
             ref="sort_condition_selectbox_ref" />
-        <word_search_textbox @errors="emit_errors" @updated_search_word="updated_search_word"
-            ref="word_search_textbox_ref" />
         <board_list :option="option" @errors="emit_errors" @updated_by_user="updated_boards_by_user"
             @clicked_board="clicked_board" ref="board_list_ref" />
         <tag_list :option="option" @errors="emit_errors" @updated_by_user="updated_tags_by_user"
@@ -37,7 +37,7 @@ const emits = defineEmits<{
     (e: 'updated_boards_by_user'): void
     (e: 'clicked_board', board: any): void
     (e: 'updated_tags_by_user'): void
-    (e: 'updated_tags', tag: Array<string>): void
+    (e: 'updated_tags', tags: Array<string>): void
 }>()
 
 const check_condition_selectbox_ref = ref<InstanceType<typeof check_condition_selectbox> | null>(null);
@@ -56,7 +56,8 @@ defineExpose({
     set_checked_tags_by_application,
     get_checked_tags,
     set_selected_board_by_application,
-    get_selected_board
+    get_selected_board,
+    construct_task_search_query
 })
 
 function updated_check_condition(updated_check_state: CheckState) {
@@ -75,7 +76,7 @@ function updated_boards_by_user() {
     //TODO
     emit_updated_boards_by_user()
 }
-function clicked_board(updated_board: any) {
+function clicked_board(updated_board: string) {
     //TODO
     emit_clicked_board(updated_board)
 }
@@ -140,12 +141,11 @@ function emit_updated_sort_type(updated_sort_type: SortType) {
 }
 function emit_updated_search_word(updated_word: string) {
     emits("updated_search_word", updated_word)
-    console.log(construct_task_search_query())
 }
 function emit_updated_boards_by_user() {
     emits("updated_boards_by_user")
 }
-function emit_clicked_board(updated_board: any) {
+function emit_clicked_board(updated_board: string) {
     emits("clicked_board", updated_board)
 }
 function emit_updated_tags_by_user() {

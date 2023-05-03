@@ -1,11 +1,12 @@
 <template>
+    <h2>板</h2>
     <table class="boardlist">
         <board_struct ref="board_struct_ref" :group_name="''" :struct="board_structure" :open="true"
-            @click_items_by_user="emit_clicked_board" />
+            @click_items_by_user="(clicked_items) => { emit_clicked_board(clicked_items[0]) }" />
     </table>
 </template>
 <script setup lang="ts">
-import { Ref, ref, watch } from 'vue';
+import { Ref, ref, watch, nextTick } from 'vue';
 import MiServerAPI from '@/api/MiServerAPI';
 import board_struct from './board_struct.vue';
 import GetBoardNamesRequest from '@/api/GetBoardNamesRequest';
@@ -19,7 +20,7 @@ const props = defineProps<Props>()
 const emits = defineEmits<{
     (e: 'errors', errors: Array<string>): void
     (e: 'updated_by_user'): void
-    (e: 'clicked_board', board: any): void
+    (e: 'clicked_board', board: string): void
 }>()
 
 let boards: Ref<any> = ref({})
@@ -28,14 +29,15 @@ const board_struct_ref = ref<InstanceType<typeof board_struct> | null>(null);
 const selected_board: Ref<string> = ref("");
 
 defineExpose({
-    set_selected_board_by_application, 
+    set_selected_board_by_application,
     get_selected_board
 })
 
-update_boards_promise()
-    .then(() => { return update_board_struct_promise() })
-    .then(() => emits('updated_by_user'))
-
+nextTick(() => {
+    update_boards_promise()
+        .then(() => { return update_board_struct_promise() })
+        .then(() => emits('updated_by_user'))
+})
 // board_structをkv_boardlist_boardsの取り扱える形に変換し、更新します。
 function update_board_struct_promise() {
     return new Promise(resolve => { return resolve(null) })
@@ -146,8 +148,8 @@ function set_selected_board_by_application(new_selected_board: string): void {
     selected_board.value = new_selected_board
 }
 
-function emit_clicked_board() {
-    emits("clicked_board", board_struct)
+function emit_clicked_board(board: string) {
+    emits("clicked_board", board)
 }
 </script>
 

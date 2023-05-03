@@ -53,44 +53,43 @@ var (
 	sqlGetLimitInfo          string
 	sqlGetBoardInfo          string
 
-	sqlGetLatestTaskFromTaskID          string
 	sqlGetLatestCheckStateFromTaskID    string
 	sqlGetLatestTaskTitleInfoFromTaskID string
 	sqlGetLatestLimitInfoFromTaskID     string
 	sqlGetLatestBoardInfoFromTaskID     string
 
-	sqlAddTask          string
-	sqlAddCheckState    string
-	sqlAddTaskTitleInfo string
-	sqlAddLimitInfo     string
-	sqlAddBoardInfo     string
-	sqlDelete           string
+	sqlAddTask           string
+	sqlAddCheckStateInfo string
+	sqlAddTaskTitleInfo  string
+	sqlAddLimitInfo      string
+	sqlAddBoardInfo      string
+	sqlDelete            string
 )
 
-func init() {
-	sqlCreateTablesB, err := EmbedDir.ReadFile("/sql/CreateTables.sql")
+func Prepare() {
+	sqlCreateTablesB, err := EmbedDir.ReadFile("mi/mi/embed/sql/CreateTables.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlCreateTables = string(sqlCreateTablesB)
-	sqlGetTaskB, err := EmbedDir.ReadFile("/sql/GetTask.sql")
+	sqlGetTaskB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetTask.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetTask = string(sqlGetTaskB)
-	sqlGetAllTasksB, err := EmbedDir.ReadFile("/sql/GetAllTasks.sql")
+	sqlGetAllTasksB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetAllTasks.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetAllTasks = string(sqlGetAllTasksB)
 
-	sqlGetCheckStateInfoB, err := EmbedDir.ReadFile("/sql/GetCheckStateInfo.sql")
+	sqlGetCheckStateInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetCheckStateInfo.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetCheckStateInfo = string(sqlGetCheckStateInfoB)
-	sqlGetTaskTitleInfoB, err := EmbedDir.ReadFile("/sql/GetTaskTitleInfo.sql")
-	sqlGetAllCheckStateInfosB, err := EmbedDir.ReadFile("/sql/GetAllCheckStateInfos.sql")
+	sqlGetTaskTitleInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetTaskTitleInfo.sql")
+	sqlGetAllCheckStateInfosB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetAllCheckStateInfos.sql")
 	if err != nil {
 		panic(err)
 	}
@@ -99,69 +98,64 @@ func init() {
 		panic(err)
 	}
 	sqlGetTaskTitleInfo = string(sqlGetTaskTitleInfoB)
-	sqlGetLimitInfoB, err := EmbedDir.ReadFile("/sql/GetLimitInfo.sql")
+	sqlGetLimitInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetLimitInfo.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetLimitInfo = string(sqlGetLimitInfoB)
-	sqlGetBoardInfoB, err := EmbedDir.ReadFile("/sql/GetBoardInfo.sql")
+	sqlGetBoardInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetBoardInfo.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetBoardInfo = string(sqlGetBoardInfoB)
 
-	sqlGetLatestTaskFromTaskIDB, err := EmbedDir.ReadFile("/sql/GetLatestTaskFromTaskID.sql")
-	if err != nil {
-		panic(err)
-	}
-	sqlGetLatestTaskFromTaskID = string(sqlGetLatestTaskFromTaskIDB)
-	sqlGetLatestCheckStateFromTaskIDB, err := EmbedDir.ReadFile("/sql/GetLatestCheckStateFromTaskID.sql")
+	sqlGetLatestCheckStateFromTaskIDB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetLatestCheckStateInfoFromTaskID.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetLatestCheckStateFromTaskID = string(sqlGetLatestCheckStateFromTaskIDB)
-	sqlGetLatestTaskTitleInfoFromTaskIDB, err := EmbedDir.ReadFile("/sql/GetLatestTaskTitleInfoFromTaskID.sql")
+	sqlGetLatestTaskTitleInfoFromTaskIDB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetLatestTaskTitleInfoFromTaskID.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetLatestTaskTitleInfoFromTaskID = string(sqlGetLatestTaskTitleInfoFromTaskIDB)
-	sqlGetLatestLimitInfoFromTaskIDB, err := EmbedDir.ReadFile("/sql/GetLatestLimitInfoFromTaskID.sql")
+	sqlGetLatestLimitInfoFromTaskIDB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetLatestLimitInfoFromTaskID.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetLatestLimitInfoFromTaskID = string(sqlGetLatestLimitInfoFromTaskIDB)
-	sqlGetLatestBoardInfoFromTaskIDB, err := EmbedDir.ReadFile("/sql/GetLatestBoardInfoFromTaskID.sql")
+	sqlGetLatestBoardInfoFromTaskIDB, err := EmbedDir.ReadFile("mi/mi/embed/sql/GetLatestBoardInfoFromTaskID.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlGetLatestBoardInfoFromTaskID = string(sqlGetLatestBoardInfoFromTaskIDB)
 
-	sqlAddTaskB, err := EmbedDir.ReadFile("/sql/AddTask.sql")
+	sqlAddTaskB, err := EmbedDir.ReadFile("mi/mi/embed/sql/AddTask.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlAddTask = string(sqlAddTaskB)
-	sqlAddCheckStateB, err := EmbedDir.ReadFile("/sql/AddCheckState.sql")
+	sqlAddCheckStateInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/AddCheckStateInfo.sql")
 	if err != nil {
 		panic(err)
 	}
-	sqlAddCheckState = string(sqlAddCheckStateB)
-	sqlAddTaskTitleInfoB, err := EmbedDir.ReadFile("/sql/AddTaskTitleInfo.sql")
+	sqlAddCheckStateInfo = string(sqlAddCheckStateInfoB)
+	sqlAddTaskTitleInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/AddTaskTitleInfo.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlAddTaskTitleInfo = string(sqlAddTaskTitleInfoB)
-	sqlAddLimitInfoB, err := EmbedDir.ReadFile("/sql/AddLimitInfo.sql")
+	sqlAddLimitInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/AddLimitInfo.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlAddLimitInfo = string(sqlAddLimitInfoB)
-	sqlAddBoardInfoB, err := EmbedDir.ReadFile("/sql/AddBoardInfo.sql")
+	sqlAddBoardInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/AddBoardInfo.sql")
 	if err != nil {
 		panic(err)
 	}
 	sqlAddBoardInfo = string(sqlAddBoardInfoB)
-	sqlDeleteB, err := EmbedDir.ReadFile("/sql/Delete.sql")
+	sqlDeleteB, err := EmbedDir.ReadFile("mi/mi/embed/sql/Delete.sql")
 	if err != nil {
 		panic(err)
 	}
@@ -288,6 +282,7 @@ func (m *miRepSQLiteImpl) GetLimitInfo(ctx context.Context, limitInfoID string) 
 	}
 
 	if limitTimeStr.Valid {
+		limitInfo.Limit = &time.Time{}
 		*limitInfo.Limit, err = time.Parse(TimeLayout, limitTimeStr.String)
 		if err != nil {
 			err = fmt.Errorf("error at parse limit time %s: %w", limitInfoID, err)
@@ -391,6 +386,7 @@ func (m *miRepSQLiteImpl) GetLatestLimitInfoFromTaskID(ctx context.Context, task
 	}
 
 	if limitTimeStr.Valid {
+		limitInfo.Limit = &time.Time{}
 		*limitInfo.Limit, err = time.Parse(TimeLayout, limitTimeStr.String)
 		if err != nil {
 			err = fmt.Errorf("error at parse limit time %s: %w", taskID, err)
@@ -441,7 +437,7 @@ func (m *miRepSQLiteImpl) AddTask(task *Task) error {
 func (m *miRepSQLiteImpl) AddCheckStateInfo(checkStateInfo *CheckStateInfo) error {
 	m.m.Lock()
 	defer m.m.Unlock()
-	statement := fmt.Sprintf(sqlAddCheckState,
+	statement := fmt.Sprintf(sqlAddCheckStateInfo,
 		escapeSQLite(checkStateInfo.CheckStateID),
 		escapeSQLite(checkStateInfo.TaskID),
 		escapeSQLite(checkStateInfo.UpdatedTime.Format(TimeLayout)),
@@ -473,12 +469,21 @@ func (m *miRepSQLiteImpl) AddTaskTitleInfo(taskTitleInfo *TaskTitleInfo) error {
 func (m *miRepSQLiteImpl) AddLimitInfo(limitInfo *LimitInfo) error {
 	m.m.Lock()
 	defer m.m.Unlock()
-	statement := fmt.Sprintf(sqlAddLimitInfo,
-		escapeSQLite(limitInfo.LimitID),
-		escapeSQLite(limitInfo.TaskID),
-		escapeSQLite(limitInfo.UpdatedTime.Format(TimeLayout)),
-		escapeSQLite(limitInfo.Limit.Format(TimeLayout)))
-	_, err := m.db.Exec(statement)
+	statement := sqlAddLimitInfo
+	var err error
+	if limitInfo.Limit != nil {
+		_, err = m.db.Exec(statement,
+			escapeSQLite(limitInfo.LimitID),
+			escapeSQLite(limitInfo.TaskID),
+			escapeSQLite(limitInfo.UpdatedTime.Format(TimeLayout)),
+			escapeSQLite(limitInfo.Limit.Format(TimeLayout)))
+	} else {
+		_, err = m.db.Exec(statement,
+			escapeSQLite(limitInfo.LimitID),
+			escapeSQLite(limitInfo.TaskID),
+			escapeSQLite(limitInfo.UpdatedTime.Format(TimeLayout)),
+			sql.NullString{})
+	}
 	if err != nil {
 		err = fmt.Errorf("error at add task limit info to to database %s: %w", m.filename, err)
 		return err

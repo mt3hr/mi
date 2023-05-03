@@ -239,7 +239,7 @@ func (m MiReps) GetTasksAtBoard(ctx context.Context, query *SearchTaskQuery) ([]
 				return nil, err
 			}
 			if taskInfo.BoardInfo.BoardName == query.Board &&
-				strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), strings.ToLower(query.Word)) {
+				(query.Word == "" || strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), strings.ToLower(query.Word))) {
 				isMatch := false
 				switch query.CheckState {
 				case NoCheckOnly:
@@ -279,12 +279,16 @@ func (m MiReps) GetTasksAtBoard(ctx context.Context, query *SearchTaskQuery) ([]
 		})
 	}
 
-	return nil, nil
+	return matchTasks, nil
 }
 
 func (m MiReps) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error) {
 	taskInfo := &TaskInfo{}
 	var err error
+	taskInfo.Task, err = m.GetTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
 	taskInfo.CheckStateInfo, err = m.GetLatestCheckStateInfoFromTaskID(ctx, taskID)
 	if err != nil {
 		return nil, err
