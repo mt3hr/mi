@@ -955,7 +955,9 @@ func launchServer() error {
 				return
 			}
 		}
-		if !request.TaskInfo.LimitInfo.Limit.Equal(*currentLimitInfo.Limit) {
+		if (request.TaskInfo.LimitInfo.Limit != nil && currentLimitInfo.Limit == nil) ||
+			(request.TaskInfo.LimitInfo.Limit == nil && currentLimitInfo.Limit != nil) ||
+			(request.TaskInfo.LimitInfo.Limit != nil && currentLimitInfo.Limit != nil && request.TaskInfo.LimitInfo.Limit.Equal(*currentLimitInfo.Limit)) {
 			err := repositories.MiRep.AddLimitInfo(request.TaskInfo.LimitInfo)
 			if err != nil {
 				response.Errors = append(response.Errors, "タスクの更新に失敗しました")

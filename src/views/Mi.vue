@@ -77,8 +77,8 @@ const watching_task_info: Ref<TaskInfo | null> = ref(null)
 const watching_board_name: Ref<string | null> = ref(null)
 const sidebar_ref = ref<InstanceType<typeof sidebar> | null>(null);
 const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(null);
-const query_map: any = {}
-const task_infos_map: any = {}
+const query_map:Ref<any> = ref({})
+const task_infos_map:Ref<any> = ref({})
 
 update_option()
 
@@ -104,7 +104,7 @@ function open_board(board_name: string) {
     opened_board_names.value.push(board_name)
     const query = sidebar_ref.value?.construct_task_search_query()
     query!.board = board_name
-    query_map[board_name] = query
+    query_map.value[board_name] = query
     select_board(board_name)
     const request = new GetTasksFromBoardRequest()
     request.query = query!
@@ -114,7 +114,7 @@ function open_board(board_name: string) {
                 write_messages(res.errors)
                 return
             }
-            task_infos_map[board_name] = res.boards_tasks
+            task_infos_map.value[board_name] = res.boards_tasks
             console.log(res.boards_tasks)
         })
 }
@@ -130,7 +130,7 @@ function close_board(board_name: string) {
         return
     }
     opened_board_names.value.splice(opened_board_infos_index, 1)
-    query_map[board_name] = undefined
+    query_map.value[board_name] = undefined
     if (watching_board_name.value === board_name) {
         watching_board_name.value = null
     }
