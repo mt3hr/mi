@@ -28,7 +28,7 @@
                     <v-spacer />
                     <v-col cols="auto">
                         <v-btn @click="submit" tabindex="111">
-                            追加
+                            適用
                         </v-btn>
                     </v-col>
                 </v-row>
@@ -63,10 +63,9 @@ const board_names: Ref<Array<string>> = ref(new Array<string>())
 const task_title: Ref<string> = ref(props.task_info.task_title_info.title)
 const board_name: Ref<string> = ref(props.task_info.board_info.board_name)
 const is_show: Ref<boolean> = ref(false)
-const has_limit: Ref<boolean> = ref(props.task_info.limit_info.limit != null)
-const limit_date: Ref<string> = ref(props != null ? `${props.task_info.limit_info.limit?.getFullYear().toString().padStart(4, '0')}-${props.task_info.limit_info.limit?.getMonth().toString().padStart(2, '0')}-${props.task_info.limit_info.limit?.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
-const limit_time: Ref<string> = ref(props != null ? `${props.task_info.limit_info.limit?.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit?.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit?.getSeconds().toString().padStart(2, '0')}` : "00:00:00")
-
+const has_limit: Ref<boolean> = ref(!(!props.task_info.limit_info.limit))
+const limit_date: Ref<string> = ref(has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${props.task_info.limit_info.limit!.getMonth().toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
+const limit_time: Ref<string> = ref(has_limit.value ? `${props.task_info.limit_info.limit!.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getSeconds().toString().padStart(2, '0')}` : "00:00:00")
 const input_new_board_name_dialog_ref = ref<InstanceType<typeof input_new_board_name_dialog> | null>(null);
 
 defineExpose({ show })
@@ -115,8 +114,8 @@ function show() {
 function clear_fields() {
     task_title.value = ""
     has_limit.value = false
-    limit_date.value = props.task_info.limit_info.limit != null ? `${props.task_info.limit_info.limit?.getFullYear().toString().padStart(4, '0')}-${props.task_info.limit_info.limit?.getMonth().toString().padStart(2, '0')}-${props.task_info.limit_info.limit?.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
-    limit_time.value = props.task_info.limit_info.limit != null ? `${props.task_info.limit_info.limit?.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit?.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit?.getSeconds().toString().padStart(2, '0')}` : `00:00:00`
+    limit_date.value = has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${props.task_info.limit_info.limit!.getMonth().toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    limit_time.value = has_limit.value ? `${props.task_info.limit_info.limit!.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getSeconds().toString().padStart(2, '0')}` : `00:00:00`
 }
 function show_input_new_board_name_dialog() {
     input_new_board_name_dialog_ref.value?.show()

@@ -53,7 +53,6 @@ const emits = defineEmits<{
 }>()
 
 const now = new Date(Date.now())
-
 const board_names: Ref<Array<string>> = ref(new Array<string>())
 const task_title: Ref<string> = ref("")
 const board_name: Ref<string> = ref("")
@@ -108,6 +107,7 @@ function show() {
     is_show.value = true
 }
 function clear_fields() {
+    const now = new Date(Date.now())
     task_title.value = ""
     has_limit.value = false
     limit_date.value = `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
@@ -138,7 +138,7 @@ function construct_task_info() {
     new_task_info.limit_info.task_id = task_id
     new_task_info.limit_info.updated_time = now
     if (has_limit.value) {
-        new_task_info.limit_info.limit = new Date(Date.parse(`${limit_date} ${limit_time}:00`))
+        new_task_info.limit_info.limit = new Date(Date.parse(`${limit_date.value} ${limit_time.value}:00`))
     } else {
         new_task_info.limit_info.limit = null
     }

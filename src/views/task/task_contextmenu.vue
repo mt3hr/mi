@@ -82,7 +82,7 @@ function copy_task_id_to_clipboard() {
     navigator.clipboard.writeText(props.task_info.task.task_id)
 }
 function show_edit_task_dialog() {
-    //TODO 有効化して edit_task_dialog_ref.value!.show()
+    edit_task_dialog_ref.value!.show()
     emit_copied_task_id()
 }
 function show_delete_task_dialog() {

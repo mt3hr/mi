@@ -18,12 +18,14 @@
                 <v-col class="board_wrap" cols="auto" v-for="board_name in opened_board_names" :key="board_name"
                     @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
                     @updated_task="updated_task" @deleted_task="deleted_task">
-                    <board :board_name="board_name" :task_infos="task_infos_map[board_name]" />
+                    <board :board_name="board_name" :task_infos="task_infos_map[board_name]" @errors="write_messages"
+                        @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
+                        @updated_task="updated_task" @deleted_task="deleted_task" @clicked_task="set_watching_task" />
                 </v-col>
             </v-row>
             <v-row class="detail_task_row">
                 <v-col class="detail_task_wrap" cols="auto">
-                    <detail_task v-if="watching_task_info != null" :task_info="watching_task_info"
+                    <detail_task v-if="watching_task_info" :task_info="watching_task_info"
                         @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
                         @updated_task="updated_task" @deleted_task="deleted_task" @deleted_tag="deleted_tag"
                         @deleted_text="deleted_text" />
@@ -104,6 +106,9 @@ function write_message(message_: string) {
     message.value = message_
     show_message_snackbar.value = true
 }
+function set_watching_task(task_info: TaskInfo) {
+    watching_task_info.value = task_info
+}
 function open_board(board_name: string) {
     const api = new MiServerAPI()
     opened_board_names.value.push(board_name)
@@ -120,7 +125,6 @@ function open_board(board_name: string) {
                 return
             }
             task_infos_map.value[board_name] = res.boards_tasks
-            console.log(res.boards_tasks)
         })
 }
 function close_board(board_name: string) {

@@ -98,7 +98,6 @@ export default class MiServerAPI {
         return response
     }
     public async add_task(add_task_request: AddTaskRequest): Promise<AddTagResponse> {
-        console.log(JSON.stringify(add_task_request))
         const res = await fetch(add_task_address, {
             method: add_task_method,
             headers: {
@@ -144,6 +143,12 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: GetTaskResponse = json
+        response.task_info.board_info.updated_time = new Date(response.task_info.board_info.updated_time)
+        response.task_info.check_state_info.updated_time = new Date(response.task_info.check_state_info.updated_time)
+        response.task_info.limit_info.updated_time = new Date(response.task_info.limit_info.updated_time)
+        response.task_info.limit_info.limit = response.task_info.limit_info.limit ? new Date(response.task_info.limit_info.limit) : null
+        response.task_info.task.created_time = new Date(response.task_info.task.created_time)
+        response.task_info.task_title_info.updated_time = new Date(response.task_info.task_title_info.updated_time)
         return response
     }
     public async get_tasks_from_board(get_tasks_from_board_request: GetTasksFromBoardRequest): Promise<GetTasksFromBoardResponse> {
@@ -156,6 +161,14 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: GetTasksFromBoardResponse = json
+        for (let i = 0; i < response.boards_tasks.length; i++) {
+            response.boards_tasks[i].board_info.updated_time = new Date(response.boards_tasks[i].board_info.updated_time)
+            response.boards_tasks[i].check_state_info.updated_time = new Date(response.boards_tasks[i].check_state_info.updated_time)
+            response.boards_tasks[i].limit_info.updated_time = new Date(response.boards_tasks[i].limit_info.updated_time)
+            response.boards_tasks[i].limit_info.limit = response.boards_tasks[i].limit_info.limit ? new Date(response.boards_tasks[i].limit_info.limit!) : null
+            response.boards_tasks[i].task.created_time = new Date(response.boards_tasks[i].task.created_time)
+            response.boards_tasks[i].task_title_info.updated_time = new Date(response.boards_tasks[i].task_title_info.updated_time)
+        }
         return response
     }
     public async add_tag(add_tag_request: AddTagRequest): Promise<AddTagResponse> {
@@ -192,6 +205,9 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: GetTagsRelatedTaskResponse = json
+        for (let i = 0; i < response.tags.length; i++) {
+            response.tags[i].time = new Date(response.tags[i].time)
+        }
         return response
     }
     public async get_texts_related_task(get_texts_related_task_request: GetTextsRelatedTaskRequest): Promise<GetTextsRelatedTaskResponse> {
@@ -204,6 +220,9 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: GetTextsRelatedTaskResponse = json
+        for (let i = 0; i < response.texts.length; i++) {
+            response.texts[i].time = new Date(response.texts[i].time)
+        }
         return response
     }
     public async delete_tag(delete_tag_request: DeleteTagRequest): Promise<DeleteTagResponse> {
@@ -240,6 +259,7 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: GetTagResponse = json
+        response.tag.time = new Date(response.tag.time)
         return response
     }
     public async get_text(get_text_request: GetTextRequest): Promise<GetTextResponse> {
@@ -252,6 +272,7 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: GetTextResponse = json
+        response.text.time = new Date(response.text.time)
         return response
     }
 

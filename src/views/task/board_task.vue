@@ -1,11 +1,11 @@
 <template>
-    <v-card @contextmenu.prevent="show_contextmenu">
+    <v-card @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task" class="pa-0 ma-0">
         <table>
             <tr>
                 <td>
-                    <v-checkbox v-model="check" />
+                    <v-checkbox v-model="check" class="pa-0 ma-0" />
                 </td>
-                <td>
+                <td class="pa-0 ma-0">
                     {{ title }}
                 </td>
                 <td v-if="limit">
@@ -24,7 +24,7 @@ import CheckStateInfo from '@/api/data_struct/CheckStateInfo';
 import TaskInfo from '@/api/data_struct/TaskInfo'
 import MiServerAPI from '@/api/MiServerAPI';
 import UpdateTaskRequest from '@/api/UpdateTaskRequest';
-import { Ref, ref, watch } from 'vue';
+import { Ref, ref, watch, nextTick } from 'vue';
 import task_contextmenu from './task_contextmenu.vue';
 import generate_uuid from '@/generate_uuid';
 
@@ -40,6 +40,7 @@ const emits = defineEmits<{
     (e: 'added_text'): void
     (e: 'updated_task', task_info: TaskInfo): void
     (e: 'deleted_task', task_info: TaskInfo): void
+    (e: 'clicked_task', task_info: TaskInfo): void
 }>()
 
 let check: Ref<boolean> = ref(props.task_info.check_state_info.is_checked)
@@ -107,6 +108,15 @@ function emit_updated_task(updated_task_info: TaskInfo) {
 function emit_deleted_task(deleted_task_info: TaskInfo) {
     emits("deleted_task", deleted_task_info)
 }
+function emit_clicked_task() {
+    emits("clicked_task", props.task_info)
+}
 </script>
 
-<style></style>
+<style>
+.v-checkbox>.v-input__details {
+    height: 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+}
+</style>

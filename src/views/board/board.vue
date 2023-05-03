@@ -5,12 +5,12 @@
         </v-card-title>
         <board_task v-for="task_info in task_infos" :key="task_info.task.task_id" :task_info="task_info"
             @errors="emit_errors" @copied_task_id="emit_copied_task_id" @added_tag="emit_added_tag"
-            @added_text="emit_added_text" @updated_task="emit_updated_task" @deleted_task="emit_deleted_task" />
+            @added_text="emit_added_text" @updated_task="emit_updated_task" @deleted_task="emit_deleted_task"
+            @clicked_task="emit_clicked_task" />
     </v-card>
 </template>
 
 <script setup lang="ts">
-import BoardInfo from '@/api/data_struct/BoardInfo';
 import TaskInfo from '@/api/data_struct/TaskInfo';
 import board_task from '../task/board_task.vue';
 
@@ -27,6 +27,7 @@ const emits = defineEmits<{
     (e: 'added_text'): void
     (e: 'updated_task', task_info: TaskInfo): void
     (e: 'deleted_task', task_info: TaskInfo): void
+    (e: 'clicked_task', task_info: TaskInfo): void
 }>()
 
 function emit_errors(errors: Array<string>) {
@@ -46,6 +47,9 @@ function emit_updated_task(updated_task_info: TaskInfo) {
 }
 function emit_deleted_task(deleted_task_info: TaskInfo) {
     emits("deleted_task", deleted_task_info)
+}
+function emit_clicked_task(clicked_task_info: TaskInfo) {
+    emits("clicked_task", clicked_task_info)
 }
 </script>
 

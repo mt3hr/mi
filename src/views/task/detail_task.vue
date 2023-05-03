@@ -1,11 +1,18 @@
 <template>
-    <v-card @contextmenu.prevent="show_contextmenu">
+    <v-card @contextmenu.prevent.stop="show_contextmenu" class="pa-0 ma-0">
+        <table>
+            <tr>
+                <td v-for="tag_data in tags" :key="tag_data.id">
+                    <tag :tag="tag_data" @deleted_tag="deleted_tag" @errors="emit_errors" />
+                </td>
+            </tr>
+        </table>
         <table>
             <tr>
                 <td>
-                    <v-checkbox v-model="check" />
+                    <v-checkbox v-model="check" class="pa-0 ma-0" />
                 </td>
-                <td>
+                <td class="pa-0 ma-0">
                     {{ title }}
                 </td>
                 <td v-if="limit">
@@ -13,17 +20,11 @@
                 </td>
             </tr>
         </table>
+
         <table>
             <tr>
-                <td v-for="tag in tags" :key="tag.id">
-                    <tag :tag="tag" @deleted_tag="deleted_tag" @errors="emit_errors" />
-                </td>
-            </tr>
-        </table>
-        <table>
-            <tr>
-                <td v-for="text in texts" :key="text.id">
-                    <text_view :text="text" @deleted_text="deleted_text" @errors="emit_errors" />
+                <td v-for="text_data in texts" :key="text_data.id">
+                    <text_view :text="text_data" @deleted_text="deleted_text" @errors="emit_errors" />
                 </td>
             </tr>
         </table>
@@ -38,7 +39,7 @@ import CheckStateInfo from '@/api/data_struct/CheckStateInfo';
 import TaskInfo from '@/api/data_struct/TaskInfo'
 import MiServerAPI from '@/api/MiServerAPI';
 import UpdateTaskRequest from '@/api/UpdateTaskRequest';
-import { Ref, ref, watch } from 'vue';
+import { Ref, ref, watch, nextTick } from 'vue';
 import task_contextmenu from './task_contextmenu.vue';
 import generate_uuid from '@/generate_uuid';
 import tag from '../tag/tag.vue';
@@ -177,4 +178,10 @@ function emit_deleted_tag() {
 }
 </script>
 
-<style></style>
+<style>
+.v-checkbox>.v-input__details {
+    height: 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+}
+</style>

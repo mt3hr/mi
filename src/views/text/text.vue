@@ -1,5 +1,5 @@
 <template>
-    <div class="text" @contextmenu.prevent="show_contextmenu">
+    <div class="text" @contextmenu.prevent.stop="show_contextmenu">
         <p class="text_content">{{ text?.text }}</p>
         <text_contextmenu :text="text" :x="x_contextmenu" :y="y_contextmenu" @errors="emit_errors"
             @deleted_text="emit_deleted_text" ref="contextmenu" />

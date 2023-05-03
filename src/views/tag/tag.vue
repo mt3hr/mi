@@ -1,5 +1,5 @@
 <template>
-    <span class="tag" @contextmenu.prevent="show_contextmenu">
+    <span class="tag" @contextmenu.prevent.stop="show_contextmenu">
         <p>{{ tag?.tag }}</p>
         <tag_contextmenu :tag="tag" :x="x_contextmenu" :y="y_contextmenu" @errors="emit_errors"
             @deleted_tag="emit_deleted_tag" ref="contextmenu" />
