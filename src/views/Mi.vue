@@ -1,78 +1,59 @@
 <template>
-    <!--
-    <textVue :text="t" />
-    <tagVue :tag="tag" />
-    <add_tag_dialog :show="true" :task_info="task_info" />
-    <tag_list :checked_tags="[]" :option="option" />
-    <board_list :option="option" />
-    <board_task :task_info="task_info" />
-    <detail_task :task_info="task_info" />
-    <add_task_dialog ref="add_task_dialog_ref" />
-    <board :board_info="board_info" :task_infos="task_infos" />
-    <sort_condition_selectbox @updated_sort_type="(sort_type) => { consolelog(sort_type) }" @errors="() => { }" />
-    -->
-    <sidebar :option="option" />
+    <v-navigation-drawer v-model="show_drawer" app>
+        <sidebar :option="option" />
+    </v-navigation-drawer>
+
+    <v-app-bar app color="indigo" flat dark height="50px">
+        <v-app-bar-nav-icon @click.stop="show_drawer = !show_drawer" />
+        <v-toolbar-title>mi</v-toolbar-title>
+        <v-spacer />
+    </v-app-bar>
+
+    <v-main>
+        <v-container>
+            <v-row class="boards_wrap">
+                <v-col class="board_wrap" cols="auto" v-for="board_info in opened_board_infos"
+                    :key="board_info.board_info_id">
+                    <board :board_info="board_info" :task_infos="new Array<TaskInfo>()" /> <!-- これどうすんの？ -->
+                    <!-- //TODO @諸々飛んできたときの処理 -->
+                </v-col>
+            </v-row>
+            <v-row class="detail_task_row">
+                <v-col class="detail_task_wrap" cols="auto">
+                    <detail_task v-if="watching_task_info != null" :task_info="watching_task_info" />
+                    <!-- //TODO @諸々飛んできたときの処理 -->
+                </v-col>
+            </v-row>
+        </v-container>
+    </v-main>
+
+    <v-snackbar v-model="show_message_snackbar">
+        <v-row>
+            <v-col cols="auto">
+                {{ message }}
+            </v-col>
+            <v-btn icon @click="show_message_snackbar = false">
+                <v-icon>mdi-close</v-icon>
+            </v-btn>
+        </v-row>
+    </v-snackbar>
 </template>
 
 <script setup lang="ts">
+import { Ref, ref, watch, nextTick } from 'vue';
 import sidebar from './sidebar/sidebar.vue';
-import sort_condition_selectbox from './sidebar/sort_condition_selectbox.vue';
-import Tag from '@/api/data_struct/Tag';
-import textVue from './text/text.vue';
-import tagVue from './tag/tag.vue';
-import Text from '@/api/data_struct/Text';
-import { Ref, ref, nextTick } from 'vue';
-import TaskInfo from '@/api/data_struct/TaskInfo';
-import add_tag_dialog from './dialog/add_tag_dialog.vue';
-import tag_list from './sidebar/tag_list.vue';
-import board_list from './sidebar/board_list.vue'
-import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
-import board_task from './task/board_task.vue';
-import add_task_dialog from './dialog/add_task_dialog.vue';
-import detail_task from './task/detail_task.vue';
 import board from './board/board.vue';
+import detail_task from './task/detail_task.vue';
+import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
 import BoardInfo from '@/api/data_struct/BoardInfo';
+import TaskInfo from '@/api/data_struct/TaskInfo';
 
-let t: Ref<Text> = ref(new Text())
-t.value.text = "hoge"
-let tag: Ref<Tag> = ref(new Tag())
-tag.value.tag = "tag"
-let task_info: Ref<TaskInfo> = ref(new TaskInfo())
-let new_task_info = new TaskInfo()
-new_task_info.task_title_info.title = "わかる"
-new_task_info.limit_info.limit = new Date(0)
-task_info.value = new_task_info
-const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(null);
-nextTick(() => {
-    add_task_dialog_ref.value?.show()
-})
-
-const board_info: Ref<BoardInfo> = ref(new BoardInfo())
-board_info.value.board_name = "Inbox"
-const task_infos: Ref<Array<TaskInfo>> = ref(new Array<TaskInfo>())
-task_infos.value.push(task_info.value)
-
-
-//TODO タスクのタイトルが更新されないんだが？
-
-let option: Ref<ApplicationConfig> = ref(new ApplicationConfig())
-let tag_struct_object: Ref<any> = ref({
-    "hoge": "tag",
-    "fuga": {
-        "piyo": "tag"
-    }
-})
-let board_struct_object: Ref<any> = ref({
-    "hoge": "board",
-    "fuga": {
-        "piyo": "board"
-    }
-})
-option.value.tag_struct = tag_struct_object.value
-option.value.board_struct = board_struct_object
-function consolelog(value: any) {
-    console.log(value)
-}
+const show_drawer: Ref<boolean | null> = ref(null)
+const show_message_snackbar: Ref<boolean> = ref(false)
+const message: Ref<string> = ref("")
+const option: Ref<ApplicationConfig> = ref(new ApplicationConfig())
+const opened_board_infos: Ref<Array<BoardInfo>> = ref(new Array<BoardInfo>())
+const watching_task_info: Ref<TaskInfo | null> = ref(null)
 </script>
 
 <style></style>
