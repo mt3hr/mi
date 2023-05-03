@@ -6,7 +6,7 @@
             @clicked_board="clicked_board" @updated_tags_by_user="updated_tags_by_user" @updated_tags="updated_tags" />
     </v-navigation-drawer>
 
-    <v-app-bar app color="indigo" flat dark height="50px">
+    <v-app-bar app color="indigo" flat dark>
         <v-app-bar-nav-icon @click.stop="show_drawer = !show_drawer" />
         <v-toolbar-title>mi</v-toolbar-title>
         <v-spacer />
@@ -31,12 +31,9 @@
             </v-row>
         </v-container>
     </v-main>
-
-    <v-fab-transition>
-        <v-btn fab dark color="indigo" class="mr-1 mb-10" absolute bottom right @click="show_add_task_dialog">
-            <v-icon>mdi-plus</v-icon>
-        </v-btn>
-    </v-fab-transition>
+    <v-avatar :style="floatingActionButtonStyle()" color="indigo" class="position-fixed">
+        <v-btn color="white" icon="mdi-plus" variant="text" @click="show_add_task_dialog" />
+    </v-avatar>
 
     <add_task_dialog @errors="write_messages" @added_task="added_task" ref="add_task_dialog_ref" />
 
@@ -77,12 +74,20 @@ const watching_task_info: Ref<TaskInfo | null> = ref(null)
 const watching_board_name: Ref<string | null> = ref(null)
 const sidebar_ref = ref<InstanceType<typeof sidebar> | null>(null);
 const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(null);
-const query_map:Ref<any> = ref({})
-const task_infos_map:Ref<any> = ref({})
+const query_map: Ref<any> = ref({})
+const task_infos_map: Ref<any> = ref({})
 
 update_option()
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+function floatingActionButtonStyle() {
+    return {
+        'bottom': '10px',
+        'right': '10px',
+        'height': '50px',
+        'width': '50px'
+    }
+}
 function update_option(): void {
     const api = new MiServerAPI()
     const request = new GetApplicationConfigRequest()
