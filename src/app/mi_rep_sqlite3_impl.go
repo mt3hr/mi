@@ -562,7 +562,7 @@ func (m *miRepSQLiteImpl) GetTasksAtBoard(ctx context.Context, query *SearchTask
 			}
 			limitI := *taskInfos[matchTasks[i].TaskID].LimitInfo.Limit
 			limitJ := *taskInfos[matchTasks[j].TaskID].LimitInfo.Limit
-			return limitI.Before(limitJ)
+			return limitI.After(limitJ)
 		})
 	}
 

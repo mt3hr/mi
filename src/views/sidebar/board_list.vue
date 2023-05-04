@@ -26,12 +26,6 @@ const emits = defineEmits<{
 let boards: Ref<any> = ref({})
 let board_structure: Ref<any> = ref({})
 const board_struct_ref = ref<InstanceType<typeof board_struct> | null>(null);
-const selected_board: Ref<string> = ref("");
-
-defineExpose({
-    set_selected_board_by_application,
-    get_selected_board
-})
 
 nextTick(() => {
     update_boards_promise()
@@ -140,12 +134,6 @@ function update_boards_promise() {
             boards.value = boardsTemp
         })
         .then(() => { return update_board_struct_promise() })
-}
-function get_selected_board(): string {
-    return selected_board.value
-}
-function set_selected_board_by_application(new_selected_board: string): void {
-    selected_board.value = new_selected_board
 }
 
 function emit_clicked_board(board: string) {

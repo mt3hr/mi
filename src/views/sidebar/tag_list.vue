@@ -25,15 +25,14 @@ const emits = defineEmits<{
 
 let tags: Ref<any> = ref({})
 let tag_structure: Ref<any> = ref({})
-let check_all: Ref<boolean> = ref(true)
 const tag_struct_ref = ref<InstanceType<typeof tag_struct> | null>(null);
 const checked_tags: Ref<Array<string>> = ref(new Array<string>());
 
 defineExpose({
     set_checked_tags_by_application,
-    get_checked_tags
+    get_checked_tags,
+    check_all_tags
 })
-
 
 nextTick(() => {
     update_tags_promise()
@@ -42,7 +41,7 @@ nextTick(() => {
         .then(() => emits('updated_by_user'))
 })
 
-watch(() => checked_tags, () => {
+watch(checked_tags, () => {
     for (let i = 0; i < tags.value.length; i++) {
         let tag: any = tags.value[i]
         tag.check = false
@@ -245,10 +244,13 @@ function check_only_tags(tags_: any) {
         .then(() => emits('updated_by_user'))
 }
 function get_checked_tags(): Array<string> {
-    return checked_tags.value
+    return get_selected_tags()
 }
-function set_checked_tags_by_application(new_checked_tags: Array<string>): void {
+function set_checked_tags_by_application(new_checked_tags: Array<string>) {
     checked_tags.value = new_checked_tags
+}
+async function check_all_tags() {
+    await check_all_tags_promise()
 }
 </script>
 

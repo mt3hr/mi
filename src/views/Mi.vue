@@ -3,7 +3,8 @@
         <sidebar :option="option" ref="sidebar_ref" @errors="write_messages"
             @updated_check_condition="updated_check_condition" @updated_sort_type="updated_sort_type"
             @updated_search_word="updated_search_word" @updated_boards_by_user="updated_boards_by_user"
-            @clicked_board="clicked_board" @updated_tags_by_user="updated_tags_by_user" @updated_tags="updated_tags" />
+            @clicked_board="clicked_board_at_sidebar" @updated_tags_by_user="updated_tags_by_user"
+            @updated_checked_tags="updated_checked_tags" />
     </v-navigation-drawer>
 
     <v-app-bar app color="indigo" flat dark>
@@ -18,17 +19,18 @@
                 <v-col class="board_wrap" cols="auto" v-for="board_name in opened_board_names" :key="board_name"
                     @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
                     @updated_task="updated_task" @deleted_task="deleted_task">
-                    <board :board_name="board_name" :task_infos="task_infos_map[board_name]" @errors="write_messages"
-                        @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
-                        @updated_task="updated_task" @deleted_task="deleted_task" @clicked_task="set_watching_task" />
+                    <board :board_name="board_name" :selected_board_name="watching_board_name"
+                        :task_infos="task_infos_map[board_name]" @errors="write_messages" @copied_task_id="copied_task_id"
+                        @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
+                        @deleted_task="deleted_task" @clicked_task="set_watching_task" @close_board_request="close_board"
+                        @clicked_board="clicked_board_at_sidebar" />
                 </v-col>
             </v-row>
             <v-row class="detail_task_row">
                 <v-col class="detail_task_wrap" cols="auto">
-                    <detail_task v-if="watching_task_info" :task_info="watching_task_info"
-                        @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
-                        @updated_task="updated_task" @deleted_task="deleted_task" @deleted_tag="deleted_tag"
-                        @deleted_text="deleted_text" />
+                    <detail_task v-if="watching_task_info" :task_info="watching_task_info" @copied_task_id="copied_task_id"
+                        @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
+                        @deleted_task="deleted_task" @deleted_tag="deleted_tag" @deleted_text="deleted_text" />
                 </v-col>
             </v-row>
         </v-container>
@@ -110,12 +112,21 @@ function set_watching_task(task_info: TaskInfo) {
     watching_task_info.value = task_info
 }
 function open_board(board_name: string) {
-    const api = new MiServerAPI()
+    if (!board_name || board_name === "") {
+        return
+    }
     opened_board_names.value.push(board_name)
+    select_board(board_name)
+    update_board(board_name)
+}
+function update_board(board_name: string) {
+    const api = new MiServerAPI()
     const query = sidebar_ref.value?.construct_task_search_query()
+    if (!query || board_name == "") {
+        return
+    }
     query!.board = board_name
     query_map.value[board_name] = query
-    select_board(board_name)
     const request = new GetTasksFromBoardRequest()
     request.query = query!
     api.get_tasks_from_board(request)
@@ -144,8 +155,19 @@ function close_board(board_name: string) {
         watching_board_name.value = null
     }
 }
-function select_board(board_name: string) {
+async function select_board(board_name: string | null) {
     watching_board_name.value = board_name
+    if (!board_name || board_name === "") {
+        return
+    }
+    if (!query_map.value[board_name!]) {
+        await sidebar_ref.value?.check_all_tags()
+        update_board(board_name!)
+    }
+    sidebar_ref.value?.set_search_word_by_application(query_map.value![board_name!].word)
+    sidebar_ref.value?.set_sort_type_by_application(query_map.value![board_name!].sort_type)
+    sidebar_ref.value?.set_check_state_by_application(query_map.value![board_name!].check_state)
+    sidebar_ref.value?.set_checked_tags_by_application(query_map.value![board_name!].tags)
 }
 async function write_messages(messages: Array<string>) {
     let is_first = true
@@ -157,18 +179,18 @@ async function write_messages(messages: Array<string>) {
     }
 }
 function updated_check_condition(check_state: CheckState) {
-    //TODO
+    update_board(watching_board_name.value!)
 }
 function updated_sort_type(sort_tyhpe: SortType) {
-    //TODO
+    update_board(watching_board_name.value!)
 }
 function updated_search_word(word: string) {
-    //TODO
+    update_board(watching_board_name.value!)
 }
 function updated_boards_by_user() {
-    //TODO
+    update_board(watching_board_name.value!)
 }
-function clicked_board(board_name: string) {
+function clicked_board_at_sidebar(board_name: string) {
     let opened = false
     for (let i = 0; i < opened_board_names.value.length; i++) {
         if (opened_board_names.value[i] === board_name) {
@@ -179,6 +201,7 @@ function clicked_board(board_name: string) {
     if (!opened) {
         open_board(board_name)
     }
+    select_board(board_name)
 }
 function show_add_task_dialog() {
     add_task_dialog_ref.value?.show()
@@ -187,9 +210,11 @@ function added_task() {
     //TODO
 }
 function updated_tags_by_user() {
-    //TODO
+    if (watching_board_name.value) {
+        update_board(watching_board_name.value!)
+    }
 }
-function updated_tags(tags: Array<string>) {
+function updated_checked_tags(tags: Array<string>) {
     //TODO
 }
 function copied_task_id(task_info: TaskInfo) {

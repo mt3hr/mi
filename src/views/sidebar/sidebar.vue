@@ -9,12 +9,12 @@
         <board_list :option="option" @errors="emit_errors" @updated_by_user="updated_boards_by_user"
             @clicked_board="clicked_board" ref="board_list_ref" />
         <tag_list :option="option" @errors="emit_errors" @updated_by_user="updated_tags_by_user"
-            @updated_checked_tags="updated_tags" ref="tag_list_ref" />
+            @updated_checked_tags="updated_checked_tags" ref="tag_list_ref" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { Ref, ref, watch } from 'vue';
+import { Ref, ref, watch, nextTick } from 'vue';
 import check_condition_selectbox from './check_condition_selectbox.vue';
 import sort_condition_selectbox from './sort_condition_selectbox.vue';
 import word_search_textbox from './word_search_textbox.vue';
@@ -37,7 +37,7 @@ const emits = defineEmits<{
     (e: 'updated_boards_by_user'): void
     (e: 'clicked_board', board: any): void
     (e: 'updated_tags_by_user'): void
-    (e: 'updated_tags', tags: Array<string>): void
+    (e: 'updated_checked_tags', tags: Array<string>): void
 }>()
 
 const check_condition_selectbox_ref = ref<InstanceType<typeof check_condition_selectbox> | null>(null);
@@ -55,9 +55,8 @@ defineExpose({
     get_check_state,
     set_checked_tags_by_application,
     get_checked_tags,
-    set_selected_board_by_application,
-    get_selected_board,
-    construct_task_search_query
+    construct_task_search_query,
+    check_all_tags
 })
 
 function updated_check_condition(updated_check_state: CheckState) {
@@ -84,13 +83,12 @@ function updated_tags_by_user() {
     //TODO
     emit_updated_tags_by_user()
 }
-function updated_tags(updated_tags: Array<string>) {
+function updated_checked_tags(checked_tags: Array<string>) {
     //TODO
-    emit_updated_tags(updated_tags)
+    emit_updated_checked_tags(checked_tags)
 }
 function construct_task_search_query(): TaskSearchQuery {
     const query = new TaskSearchQuery()
-    query.board = board_list_ref.value?.get_selected_board()!
     query.check_state = check_condition_selectbox_ref.value?.get_check_state()!
     query.sort_type = sort_condition_selectbox_ref.value?.get_sort_type()!
     query.tags = tag_list_ref.value?.get_checked_tags()!
@@ -119,16 +117,9 @@ function set_check_state_by_application(new_check_state: CheckState): void {
 function get_checked_tags(): Array<string> {
     return tag_list_ref.value?.get_checked_tags()!
 }
-function set_checked_tags_by_application(new_checked_tags: Array<string>): void {
+function set_checked_tags_by_application(new_checked_tags: Array<string>) {
     tag_list_ref.value?.set_checked_tags_by_application(new_checked_tags)
 }
-function get_selected_board(): string {
-    return board_list_ref.value?.get_selected_board()!
-}
-function set_selected_board_by_application(new_selected_board: string): void {
-    board_list_ref.value?.set_selected_board_by_application(new_selected_board)
-}
-//TODO 深いところにもセッター設置してアプリケーションからの操作とユーザ操作を区別して
 
 function emit_errors(errors: Array<string>) {
     emits("errors", errors)
@@ -151,8 +142,11 @@ function emit_clicked_board(updated_board: string) {
 function emit_updated_tags_by_user() {
     emits("updated_tags_by_user")
 }
-function emit_updated_tags(updated_tags: Array<string>) {
-    emits("updated_tags", updated_tags)
+function emit_updated_checked_tags(updated_checked_tags: Array<string>) {
+    emits("updated_checked_tags", updated_checked_tags)
+}
+async function check_all_tags() {
+    await tag_list_ref.value?.check_all_tags()
 }
 </script>
 
