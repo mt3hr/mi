@@ -12,6 +12,10 @@ type miRepT struct {
 	deleteTagReps tag.DeleteTagReps
 }
 
+func (m *miRepT) SearchTasks(ctx context.Context, word string, query *SearchTaskQuery) ([]*Task, error) {
+	return m.rep.SearchTasks(ctx, word, query)
+}
+
 func (m *miRepT) GetAllTasks(ctx context.Context) ([]*Task, error) {
 	return m.rep.GetAllTasks(ctx)
 }

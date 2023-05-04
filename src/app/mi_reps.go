@@ -11,6 +11,24 @@ import (
 
 type MiReps []MiRep
 
+func (m MiReps) SearchTasks(ctx context.Context, word string, query *SearchTaskQuery) ([]*Task, error) {
+	taskMap := map[string]*Task{}
+	for _, miRep := range m {
+		tasks, err := miRep.SearchTasks(ctx, word, query)
+		if err != nil {
+			return nil, err
+		}
+		for _, task := range tasks {
+			taskMap[task.TaskID] = task
+		}
+	}
+	tasks := []*Task{}
+	for _, task := range taskMap {
+		tasks = append(tasks, task)
+	}
+	return tasks, nil
+}
+
 func (m MiReps) GetAllTasks(ctx context.Context) ([]*Task, error) {
 	taskMap := map[string]*Task{}
 	for _, miRep := range m {

@@ -1052,13 +1052,26 @@ func launchServer() error {
 			panic(err)
 		}
 
-		words, notWords := parseWords(request.Query.Word)
+		boardsTasksMap := map[string]*mi.Task{}
+		if request.Query.Word != "" {
+			words, notWords := parseWords(request.Query.Word)
 
-		boardsTasksMap, err := filterWords(r.Context(), repositories.MiReps, repositories.TextReps, words, notWords, false)
-		if err != nil {
-			response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			boardsTasksMap, err = filterWords(r.Context(), repositories.MiReps, repositories.TextReps, words, notWords, false, request.Query)
+			if err != nil {
+				response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else {
+			boatdsTasks, err := repositories.MiReps.GetTasksAtBoard(r.Context(), request.Query)
+			if err != nil {
+				response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			for _, task := range boatdsTasks {
+				boardsTasksMap[task.TaskID] = task
+			}
 		}
 
 		boardsTasksMap, err = filterTags(r.Context(), boardsTasksMap, repositories.TagReps, request.Query.Tags, Or)
@@ -1067,6 +1080,7 @@ func launchServer() error {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
 		boardsTasks := []*mi.Task{}
 		for _, task := range boardsTasksMap {
 			boardsTasks = append(boardsTasks, task)
@@ -1855,7 +1869,7 @@ loop:
 	return matchTasks, nil
 }
 
-func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string, notWords []string, and bool) (map[string]*mi.Task, error) {
+func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string, notWords []string, and bool, query *mi.SearchTaskQuery) (map[string]*mi.Task, error) {
 	matchTasks := map[string]*mi.Task{}
 	// wordsがないときにはRep内のすべてのID
 	if len(words) == 0 {
@@ -1878,7 +1892,7 @@ func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, w
 
 		// notWordsにhitしたものを外す
 		if len(notWords) != 0 {
-			notMatchTasks, err := orSearch(ctx, reps, textReps, notWords)
+			notMatchTasks, err := orSearch(ctx, reps, textReps, notWords, query)
 			if err != nil {
 				err := fmt.Errorf("error at orSearch: %w", err)
 				return nil, err
@@ -1899,13 +1913,13 @@ func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, w
 	tasks := []*mi.Task{}
 	var err error
 	if and {
-		tasks, err = andSearch(ctx, reps, textReps, words)
+		tasks, err = andSearch(ctx, reps, textReps, words, query)
 		if err != nil {
 			err = fmt.Errorf("failed to and search: %w", err)
 			return nil, err
 		}
 	} else {
-		tasks, err = orSearch(ctx, reps, textReps, words)
+		tasks, err = orSearch(ctx, reps, textReps, words, query)
 		if err != nil {
 			err = fmt.Errorf("failed to or search: %w", err)
 			return nil, err
@@ -1920,7 +1934,7 @@ func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, w
 	}
 
 	// notWordsにhitしたものを外す
-	notTasks, err := orSearch(ctx, reps, textReps, notWords)
+	notTasks, err := orSearch(ctx, reps, textReps, notWords, query)
 	if err != nil {
 		err := fmt.Errorf("error at orSearch: %w", err)
 		return nil, err
@@ -1933,7 +1947,7 @@ func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, w
 	return matchTasks, nil
 }
 
-func orSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string) ([]*mi.Task, error) {
+func orSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string, query *mi.SearchTaskQuery) ([]*mi.Task, error) {
 	matchTasks := []*mi.Task{}
 	allTasks := []*mi.Task{}
 	for _, rep := range reps {
@@ -1947,18 +1961,12 @@ func orSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, word
 	// repにSearchしてヒットしたもの
 	for _, rep := range reps {
 		for _, word := range words {
-			matchTasksInRep, err := rep.Search(ctx, word)
+			matchTasksInRep, err := rep.SearchTasks(ctx, word, query)
 			if err != nil {
 				err = fmt.Errorf("error at search %s in %s: %w", word, rep.Path(), err)
 				return nil, err
 			}
-			for _, matchTaskInRep := range matchTasksInRep {
-				task, err := rep.GetTask(ctx, matchTaskInRep.ID)
-				if err != nil {
-					continue // CheckStateInfoが混ざっているのでエラー発生したら無視
-				}
-				matchTasks = append(matchTasks, task)
-			}
+			matchTasks = append(matchTasks, matchTasksInRep...)
 		}
 	}
 	//textRepにSearchしてヒットしたもの
@@ -1989,7 +1997,7 @@ func orSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, word
 	return matchTasks, nil
 }
 
-func andSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string) ([]*mi.Task, error) {
+func andSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string, query *mi.SearchTaskQuery) ([]*mi.Task, error) {
 	// searchで見つかったかどうか := map[id]map[word]
 	m := map[string]map[string]bool{}
 	hitTasks := map[string]*mi.Task{}
@@ -2014,17 +2022,12 @@ func andSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, wor
 
 	for _, word := range words {
 		for _, rep := range reps {
-
-			tasks, err := rep.Search(ctx, word)
+			tasks, err := rep.SearchTasks(ctx, word, query)
 			if err != nil {
 				err = fmt.Errorf("error at search %s from %s: %w", word, rep.RepName(), err)
 				return nil, err
 			}
 			for _, task := range tasks {
-				task, err := rep.GetTask(ctx, task.ID)
-				if err != nil {
-					continue // CheckStateInfoが混ざっているのでエラー発生したら無視
-				}
 				if _, exist := m[task.TaskID]; !exist {
 					m[task.TaskID] = map[string]bool{}
 				}

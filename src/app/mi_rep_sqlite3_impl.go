@@ -40,6 +40,70 @@ type miRepSQLiteImpl struct {
 	m        *sync.Mutex
 }
 
+func (m *miRepSQLiteImpl) SearchTasks(ctx context.Context, word string, query *SearchTaskQuery) ([]*Task, error) {
+	matchTasks := []*Task{}
+	taskInfos := map[string]*TaskInfo{}
+	tasks, err := m.GetAllTasks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, task := range tasks {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+			if err != nil {
+				return nil, err
+			}
+			if taskInfo.BoardInfo.BoardName == query.Board &&
+				strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), strings.ToLower(query.Word)) {
+				isMatch := false
+				switch query.CheckState {
+				case NoCheckOnly:
+					isMatch = !taskInfo.CheckStateInfo.IsChecked
+				case CheckOnly:
+					isMatch = taskInfo.CheckStateInfo.IsChecked
+				case All:
+					isMatch = true
+				}
+
+				if strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), word) {
+					if isMatch {
+						matchTasks = append(matchTasks, task)
+						taskInfos[task.TaskID] = taskInfo
+					}
+				}
+			}
+		}
+	}
+
+	switch query.SortType {
+	case CreatedTimeDesc:
+		sort.Slice(matchTasks, func(i int, j int) bool {
+			return matchTasks[i].CreatedTime.After(matchTasks[j].CreatedTime)
+		})
+	case LimitTimeAsc:
+		sort.Slice(matchTasks, func(i int, j int) bool {
+			if taskInfos[matchTasks[i].TaskID].LimitInfo.Limit == nil && taskInfos[matchTasks[j].TaskID].LimitInfo.Limit == nil {
+				return false
+			}
+			if taskInfos[matchTasks[i].TaskID].LimitInfo.Limit != nil && taskInfos[matchTasks[j].TaskID].LimitInfo.Limit == nil {
+				return true
+			}
+			if taskInfos[matchTasks[i].TaskID].LimitInfo.Limit == nil && taskInfos[matchTasks[j].TaskID].LimitInfo.Limit != nil {
+				return false
+			}
+			limitI := *taskInfos[matchTasks[i].TaskID].LimitInfo.Limit
+			limitJ := *taskInfos[matchTasks[j].TaskID].LimitInfo.Limit
+			return limitI.After(limitJ)
+		})
+	}
+
+	return matchTasks, nil
+}
+
 var (
 	//go:embed mi/mi/embed
 	EmbedDir embed.FS
