@@ -31,15 +31,13 @@ const checked_tags: Ref<Array<string>> = ref(new Array<string>());
 defineExpose({
     set_checked_tags_by_application,
     get_checked_tags,
-    check_all_tags
+    check_all_tags,
 })
 
-nextTick(() => {
-    update_tags_promise()
-        .then(() => { return check_all_tags_promise() })
-        .then(() => { return update_tag_struct_promise() })
-        .then(() => emits('updated_by_user'))
-})
+update_tags_promise()
+    .then(() => { return check_all_tags_promise() })
+    .then(() => { return update_tag_struct_promise() })
+    .then(() => emits('updated_by_user'))
 
 watch(checked_tags, () => {
     for (let i = 0; i < tags.value.length; i++) {

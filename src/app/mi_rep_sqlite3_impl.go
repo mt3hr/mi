@@ -508,7 +508,6 @@ func (m *miRepSQLiteImpl) AddBoardInfo(boardInfo *BoardInfo) error {
 }
 
 func (m *miRepSQLiteImpl) GetTasksAtBoard(ctx context.Context, query *SearchTaskQuery) ([]*Task, error) {
-	//TODO タグによる絞り込みはここからではできないのでhandlerあたりで絞って
 	matchTasks := []*Task{}
 	taskInfos := map[string]*TaskInfo{}
 	tasks, err := m.GetAllTasks(ctx)
@@ -572,6 +571,10 @@ func (m *miRepSQLiteImpl) GetTasksAtBoard(ctx context.Context, query *SearchTask
 func (m *miRepSQLiteImpl) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error) {
 	taskInfo := &TaskInfo{}
 	var err error
+	taskInfo.Task, err = m.GetTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
 	taskInfo.CheckStateInfo, err = m.GetLatestCheckStateInfoFromTaskID(ctx, taskID)
 	if err != nil {
 		return nil, err
@@ -703,7 +706,10 @@ func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou
 		return nil, err
 	}
 
-	tasks, _ := m.GetAllTasks(ctx)
+	tasks, err := m.GetAllTasks(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if tasks != nil {
 		for _, task := range tasks {
 			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
@@ -717,15 +723,15 @@ func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou
 					RepName:     m.RepName(),
 					ImageSource: "",
 				})
-			}
-			for _, checkStateInfo := range checkStateInfos {
-				if checkStateInfo.TaskID == taskInfo.Task.TaskID {
-					kyous = append(kyous, &kyou.Kyou{
-						ID:          checkStateInfo.CheckStateID,
-						Time:        checkStateInfo.UpdatedTime,
-						RepName:     m.RepName(),
-						ImageSource: "",
-					})
+				for _, checkStateInfo := range checkStateInfos {
+					if checkStateInfo.TaskID == taskInfo.Task.TaskID {
+						kyous = append(kyous, &kyou.Kyou{
+							ID:          checkStateInfo.CheckStateID,
+							Time:        checkStateInfo.UpdatedTime,
+							RepName:     m.RepName(),
+							ImageSource: "",
+						})
+					}
 				}
 			}
 		}

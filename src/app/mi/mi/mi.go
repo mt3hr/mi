@@ -23,7 +23,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/mitchellh/go-homedir"
 	mi "github.com/mt3hr/mi/src/app"
-	"github.com/mt3hr/rykv"
 	"github.com/mt3hr/rykv/kyou"
 	"github.com/mt3hr/rykv/registrep"
 	tag "github.com/mt3hr/rykv/tag"
@@ -281,8 +280,9 @@ type ApplicationConfig struct {
 	HiddenTags  []string `json:"hidden_tags"`
 	UnCheckTags []string `json:"un_check_tags"`
 
-	BoardStruct interface{} `yaml:"BoardStruct" json:"board_struct"`
-	TagStruct   interface{} `yaml:"TagStruct" json:"tag_struct"`
+	BoardStruct      interface{} `yaml:"BoardStruct" json:"board_struct"`
+	TagStruct        interface{} `yaml:"TagStruct" json:"tag_struct"`
+	DefaultBoardName string      `yaml:"DefaultBoardName" json:"default_board_name"`
 }
 
 func getConfigFile() string {
@@ -336,10 +336,16 @@ ApplicationConfig:
   TagStruct: 
     no tag: tag
 
+  # デフォルトの板名
+  DefaultBoardName: "Inbox"
+
 Repositories:
+  # タスク情報の保存先データベースファイル
   MiRep:
     type: mi_db
     file: $HOME/Mi.db
+
+  # タスク情報データベースファイル郡
   MiReps:
   - type: mi_db
     file: $HOME/Mi.db
@@ -1046,12 +1052,24 @@ func launchServer() error {
 			panic(err)
 		}
 
-		boardsTasks, err := repositories.MiReps.GetTasksAtBoard(r.Context(), request.Query)
+		words, notWords := parseWords(request.Query.Word)
+
+		boardsTasksMap, err := filterWords(r.Context(), repositories.MiReps, repositories.TextReps, words, notWords, false)
 		if err != nil {
 			response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
-			panic(err) //TODO keshite
 			return
+		}
+
+		boardsTasksMap, err = filterTags(r.Context(), boardsTasksMap, repositories.TagReps, request.Query.Tags, Or)
+		if err != nil {
+			response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		boardsTasks := []*mi.Task{}
+		for _, task := range boardsTasksMap {
+			boardsTasks = append(boardsTasks, task)
 		}
 
 		boardsTaskInfos := []*mi.TaskInfo{}
@@ -1425,7 +1443,7 @@ func launchServer() error {
 		response.ApplicationConfig = config.ApplicationConfig
 	}).Methods(get_application_config_method)
 
-	html, err := fs.Sub(htmlFS, "mi/mi/embed/html") //TODO
+	html, err := fs.Sub(htmlFS, "mi/mi/embed/html")
 	if err != nil {
 		return err
 	}
@@ -1470,69 +1488,6 @@ func launchServer() error {
 		}
 	}
 	return nil
-}
-
-// FindRequest .
-// findされるときのリクエストのデータモデル
-type FindRequest struct {
-	Words string   `json:"words"`
-	Reps  []string `json:"reps"`
-	Tags  []string `json:"tags"`
-
-	WordsAnd bool   `json:"words_and"`
-	TagsMode string `json:"tags_mode"`
-
-	ImageOnly bool `json:"image_only"`
-}
-
-// KmemoRequest .
-// /api/kmemo/にPOSTしてKmemoを新規に追加するときのデータモデル
-type KmemoRequest struct {
-	Content string `json:"content"`
-}
-
-// URLogRequest .
-// /api/urlog/にPOSTしてURLogを新規に追加するときのデータモデル
-type URLogRequest struct {
-	URL string `json:"url"`
-}
-
-// TagRequest .
-// /api/kyou/{id}/tags/にPOSTしてTagを新規に追加するときのデータモデル
-type TagRequest struct {
-	Tag string `json:"tag"`
-}
-
-// TextRequest .
-// /api/kyou/{id}/texts/にPOSTしてTagを新規に追加するときのデータモデル
-type TextRequest struct {
-	Text string `json:"text"`
-}
-
-// OpenFileRequest .
-// /api/openfile にGetしてファイルを開くときのデータモデル
-type OpenFileRequest struct {
-	ID string `json:"id"`
-}
-
-// OpenDirectoryRequest .
-// /api/opendirectory にGetしてディレクトリを開くときのデータモデル
-type OpenDirectoryRequest struct {
-	ID string `json:"id"`
-}
-
-type TimeIsPlayingRequest struct {
-	Time time.Time `json:"time"`
-}
-
-// Option .
-// /api/optionsで返すデータモデル
-type Option struct {
-	HiddenTags         []string    `json:"hidden_tags"`
-	UnCheckTags        []string    `json:"un_check_tags"`
-	BoardStruct        interface{} `json:"board_struct"`
-	TagStruct          interface{} `json:"tag_struct"`
-	EnableDeleteAction bool        `json:"enable_delete_action"`
 }
 
 func sortKyousByTime(kyous []*kyou.Kyou) {
@@ -1706,72 +1661,251 @@ func wrapTextRepsT(reps []text.TextRep, deleteTagReps tag.DeleteTagReps) []text.
 // NoTag . tagが一つもついていないkyouに自動的につけられるタグ名
 const NoTag = `no tag`
 
-func filterReps(ctx context.Context, reps []rykv.Rep, repNames []string) ([]rykv.Rep, error) {
-	matchReps := []rykv.Rep{}
-	for _, rep := range reps {
-	loop:
-		for _, repname := range repNames {
-			if repname == rep.RepName() {
-				matchReps = append(matchReps, rep)
-				break loop
+// TagFilterMode .
+// タグの検索モード。And, Or, Onlyのいずれか
+type TagFilterMode string
+
+// TagFilterModeの一覧
+const (
+	And  TagFilterMode = "and"
+	Or   TagFilterMode = "or"
+	Only TagFilterMode = "only"
+)
+
+func filterTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []tag.TagRep, tags []string, mode TagFilterMode) (map[string]*mi.Task, error) {
+	// タグを持っていないidを取得する
+	noHaveTagTasks := map[string]*mi.Task{}
+	haveTagTasks := map[string]struct{}{}
+	for _, tagrep := range tagReps {
+		allTags, err := tagrep.GetAllTags(ctx)
+		if err != nil {
+			err = fmt.Errorf("error at get all tags from tagrep %s: %w", tagrep.Path(), err)
+			return nil, err
+		}
+		for _, tag := range allTags {
+			haveTagTasks[tag.Target] = struct{}{}
+		}
+	}
+	for _, task := range matchTasks {
+		if _, exist := haveTagTasks[task.TaskID]; !exist {
+			noHaveTagTasks[task.TaskID] = task
+		}
+	}
+
+	if mode == Or {
+		// tagがあり、or検索の場合は、タグにヒットしたやつすべて
+		temp := map[string]*mi.Task{}
+		for _, tagrep := range tagReps {
+			for _, tagname := range tags {
+				tags, err := tagrep.GetTagsByName(ctx, tagname)
+				if err != nil {
+					err = fmt.Errorf("error at get tag by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
+					return nil, err
+				}
+				for _, tag := range tags {
+					if task, exist := matchTasks[tag.Target]; exist {
+						temp[task.TaskID] = task
+					}
+				}
+			}
+		}
+		// notagが含まれたらタグを持っていないkyouを追加する
+		for _, tag := range tags {
+			if tag == NoTag {
+				for _, task := range noHaveTagTasks {
+					temp[task.TaskID] = task
+				}
+			}
+		}
+		matchTasks = map[string]*mi.Task{}
+		for _, task := range temp {
+			_, exist := matchTasks[task.TaskID]
+			if !exist {
+				matchTasks[task.TaskID] = task
+			}
+		}
+		return filterHiddenTags(ctx, matchTasks, tagReps, tags)
+	}
+
+	temp := []*mi.Task{}
+	for _, tag := range tags {
+		if tag == NoTag {
+			for _, task := range noHaveTagTasks {
+				temp = append(temp, task)
 			}
 		}
 	}
-	return matchReps, nil
-}
+	for i, tagname := range tags {
+		switch i {
+		case 0:
+			for _, tagrep := range tagReps {
+				tags, err := tagrep.GetTagsByName(ctx, tagname)
+				if err != nil {
+					err = fmt.Errorf("error at get tags by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
+					return nil, err
+				}
+				for _, tag := range tags {
+					if id, exist := matchTasks[tag.Target]; exist {
+						temp = append(temp, id)
+					}
+				}
+			}
+		default:
+			temppp := []*mi.Task{}
+			for _, tagrep := range tagReps {
+				tags, err := tagrep.GetTagsByName(ctx, tagname)
+				if err != nil {
+					err = fmt.Errorf("failed to get tag by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
+					return nil, err
+				}
 
-// kyou := map[kyou.id]
-func filterWords(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, words []string, notWords []string, and bool) (map[string]*kyou.Kyou, error) {
-	matchKyous := map[string]*kyou.Kyou{}
-	// wordsがないときにはRep内のすべてのID
-	if len(words) == 0 {
-		allKyous := []*kyou.Kyou{}
-		for _, rep := range reps {
-			kyous, err := rep.GetAllKyous(ctx)
+				tasks := []*mi.Task{}
+				for _, tag := range tags {
+					if id, exist := matchTasks[tag.Target]; exist {
+						tasks = append(tasks, id)
+					}
+				}
+
+				for _, existTask := range temp {
+					exist := false
+					for _, task := range tasks {
+						if existTask.TaskID == task.TaskID {
+							exist = true
+						}
+					}
+					if exist {
+						temppp = append(temppp, existTask)
+					}
+				}
+			}
+			temp = temppp
+		}
+	}
+	matchTasks = map[string]*mi.Task{}
+	for _, task := range temp {
+		_, exist := matchTasks[task.TaskID]
+		if !exist {
+			matchTasks[task.TaskID] = task
+		}
+	}
+
+	// OnlyModeでNoTagが含まれたらAnd検索結果と同義なので
+	if mode == And || (mode == Only && equal([]string{NoTag}, tags)) {
+		return filterHiddenTags(ctx, matchTasks, tagReps, tags)
+	} else if mode == Only {
+		allTags := []*tag.Tag{}
+		for _, tagrep := range tagReps {
+			tags, err := tagrep.GetAllTags(ctx)
 			if err != nil {
-				err = fmt.Errorf("error at get all kyous from %s: %w", rep.Path(), err)
+				err = fmt.Errorf("error at get all tags from %s: %w", tagrep.Path(), err)
 				return nil, err
 			}
-			allKyous = append(allKyous, kyous...)
+			allTags = append(allTags, tags...)
+		}
+
+		// requestされたtagじゃないものがあったら除去する
+		sortedTags := sort.StringSlice(tags)
+		unMatchTaskTasks := map[string]struct{}{}
+		for target := range matchTasks {
+			attachedTagsMap := map[string]struct{}{}
+			for _, tag := range allTags {
+				if tag.Target == target {
+					attachedTagsMap[tag.Tag] = struct{}{}
+				}
+			}
+			attachedTags := []string{}
+			for attachedTag := range attachedTagsMap {
+				attachedTags = append(attachedTags, attachedTag)
+			}
+			sort.Strings(attachedTags)
+			if !equal(sortedTags, attachedTags) {
+				unMatchTaskTasks[target] = struct{}{}
+			}
+		}
+		for unMatchTaskID := range unMatchTaskTasks {
+			delete(matchTasks, unMatchTaskID)
+		}
+		return filterHiddenTags(ctx, matchTasks, tagReps, tags)
+	}
+	err := fmt.Errorf("invalid 'mode' value: %s", mode)
+	return nil, err
+}
+
+func filterHiddenTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []tag.TagRep, tags []string) (map[string]*mi.Task, error) {
+loop:
+	for _, hiddenTag := range config.ApplicationConfig.HiddenTags {
+		for _, tag := range tags {
+			if hiddenTag == tag {
+				continue loop
+			}
+		}
+		for _, tagrep := range tagReps {
+			tags, err := tagrep.GetTagsByName(ctx, hiddenTag)
+			if err != nil {
+				err = fmt.Errorf("error at get tags by name from %s: %w", tagrep.Path(), err)
+				return nil, err
+			}
+			for _, tag := range tags {
+				if _, exist := matchTasks[tag.Target]; exist {
+					delete(matchTasks, tag.Target)
+				}
+			}
+		}
+	}
+	return matchTasks, nil
+}
+
+func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string, notWords []string, and bool) (map[string]*mi.Task, error) {
+	matchTasks := map[string]*mi.Task{}
+	// wordsがないときにはRep内のすべてのID
+	if len(words) == 0 {
+		allTasks := []*mi.Task{}
+		for _, rep := range reps {
+			tasks, err := rep.GetAllTasks(ctx)
+			if err != nil {
+				err = fmt.Errorf("error at get all tasks from %s: %w", rep.Path(), err)
+				return nil, err
+			}
+			allTasks = append(allTasks, tasks...)
 		}
 
 		// 重複がないようにMapに詰める
-		for _, kyou := range allKyous {
-			if _, exist := matchKyous[kyou.ID]; !exist {
-				matchKyous[kyou.ID] = kyou
+		for _, task := range allTasks {
+			if _, exist := matchTasks[task.TaskID]; !exist {
+				matchTasks[task.TaskID] = task
 			}
 		}
 
 		// notWordsにhitしたものを外す
 		if len(notWords) != 0 {
-			notMatchKyous, err := orSearch(ctx, reps, textReps, notWords)
+			notMatchTasks, err := orSearch(ctx, reps, textReps, notWords)
 			if err != nil {
 				err := fmt.Errorf("error at orSearch: %w", err)
 				return nil, err
 			}
-			for _, notMatchKyou := range notMatchKyous {
-				if _, exist := matchKyous[notMatchKyou.ID]; exist {
-					delete(matchKyous, notMatchKyou.ID)
+			for _, notMatchTask := range notMatchTasks {
+				if _, exist := matchTasks[notMatchTask.TaskID]; exist {
+					delete(matchTasks, notMatchTask.TaskID)
 				}
 			}
 		}
-		return matchKyous, nil
+		return matchTasks, nil
 	}
 	// wordsの長さが1のときはor検索を使う（速いので）
 	if len(words) == 1 {
 		and = false
 	}
 
-	kyous := []*kyou.Kyou{}
+	tasks := []*mi.Task{}
 	var err error
 	if and {
-		kyous, err = andSearch(ctx, reps, textReps, words)
+		tasks, err = andSearch(ctx, reps, textReps, words)
 		if err != nil {
 			err = fmt.Errorf("failed to and search: %w", err)
 			return nil, err
 		}
 	} else {
-		kyous, err = orSearch(ctx, reps, textReps, words)
+		tasks, err = orSearch(ctx, reps, textReps, words)
 		if err != nil {
 			err = fmt.Errorf("failed to or search: %w", err)
 			return nil, err
@@ -1779,46 +1913,52 @@ func filterWords(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, 
 	}
 
 	// 重複がないようにMapに詰める
-	for _, kyou := range kyous {
-		if _, exist := matchKyous[kyou.ID]; !exist {
-			matchKyous[kyou.ID] = kyou
+	for _, task := range tasks {
+		if _, exist := matchTasks[task.TaskID]; !exist {
+			matchTasks[task.TaskID] = task
 		}
 	}
 
 	// notWordsにhitしたものを外す
-	notIDs, err := orSearch(ctx, reps, textReps, notWords)
+	notTasks, err := orSearch(ctx, reps, textReps, notWords)
 	if err != nil {
 		err := fmt.Errorf("error at orSearch: %w", err)
 		return nil, err
 	}
-	for _, notID := range notIDs {
-		if _, exist := matchKyous[notID.ID]; exist {
-			delete(matchKyous, notID.ID)
+	for _, notID := range notTasks {
+		if _, exist := matchTasks[notID.TaskID]; exist {
+			delete(matchTasks, notID.TaskID)
 		}
 	}
-	return matchKyous, nil
+	return matchTasks, nil
 }
 
-func orSearch(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, words []string) ([]*kyou.Kyou, error) {
-	matchKyous := []*kyou.Kyou{}
-	allKyous := []*kyou.Kyou{}
+func orSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string) ([]*mi.Task, error) {
+	matchTasks := []*mi.Task{}
+	allTasks := []*mi.Task{}
 	for _, rep := range reps {
-		kyous, err := rep.GetAllKyous(ctx)
+		tasks, err := rep.GetAllTasks(ctx)
 		if err != nil {
-			err = fmt.Errorf("error at get all kyous from %s: %w", rep.Path(), err)
+			err = fmt.Errorf("error at get all tasks from %s: %w", rep.Path(), err)
 			return nil, err
 		}
-		allKyous = append(allKyous, kyous...)
+		allTasks = append(allTasks, tasks...)
 	}
 	// repにSearchしてヒットしたもの
 	for _, rep := range reps {
 		for _, word := range words {
-			matchKyousInRep, err := rep.Search(ctx, word)
+			matchTasksInRep, err := rep.Search(ctx, word)
 			if err != nil {
 				err = fmt.Errorf("error at search %s in %s: %w", word, rep.Path(), err)
 				return nil, err
 			}
-			matchKyous = append(matchKyous, matchKyousInRep...)
+			for _, matchTaskInRep := range matchTasksInRep {
+				task, err := rep.GetTask(ctx, matchTaskInRep.ID)
+				if err != nil {
+					continue // CheckStateInfoが混ざっているのでエラー発生したら無視
+				}
+				matchTasks = append(matchTasks, task)
+			}
 		}
 	}
 	//textRepにSearchしてヒットしたもの
@@ -1830,61 +1970,66 @@ func orSearch(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, wor
 				return nil, err
 			}
 			for _, text := range matchTexts {
-				for _, kyou := range allKyous {
-					if kyou.ID == text.Target {
-						matchKyous = append(matchKyous, kyou)
+				for _, task := range allTasks {
+					if task.TaskID == text.Target {
+						matchTasks = append(matchTasks, task)
 					}
 				}
 			}
 		}
 	}
 	// idが完全に一致するものも
-	for _, kyou := range allKyous {
+	for _, task := range allTasks {
 		for _, word := range words {
-			if kyou.ID == word {
-				matchKyous = append(matchKyous, kyou)
+			if task.TaskID == word {
+				matchTasks = append(matchTasks, task)
 			}
 		}
 	}
-	return matchKyous, nil
+	return matchTasks, nil
 }
 
-func andSearch(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, words []string) ([]*kyou.Kyou, error) {
+func andSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string) ([]*mi.Task, error) {
 	// searchで見つかったかどうか := map[id]map[word]
 	m := map[string]map[string]bool{}
-	hitKyous := map[string]*kyou.Kyou{}
-	allKyous := []*kyou.Kyou{}
+	hitTasks := map[string]*mi.Task{}
+	allTasks := []*mi.Task{}
 
-	allKyousMap := map[string]*kyou.Kyou{}
+	allTasksMap := map[string]*mi.Task{}
 	for _, rep := range reps {
-		kyous, err := rep.GetAllKyous(ctx)
+		tasks, err := rep.GetAllTasks(ctx)
 		if err != nil {
-			err = fmt.Errorf("error at get all kyou from %s: %w", rep.Path(), err)
+			err = fmt.Errorf("error at get all task from %s: %w", rep.Path(), err)
 			return nil, err
 		}
-		for _, kyou := range kyous {
-			if _, exist := allKyousMap[kyou.ID]; !exist {
-				allKyousMap[kyou.ID] = kyou
+		for _, task := range tasks {
+			if _, exist := allTasksMap[task.TaskID]; !exist {
+				allTasksMap[task.TaskID] = task
 			}
 		}
 	}
-	for _, kyou := range allKyousMap {
-		allKyous = append(allKyous, kyou)
+	for _, task := range allTasksMap {
+		allTasks = append(allTasks, task)
 	}
 
 	for _, word := range words {
 		for _, rep := range reps {
-			kyous, err := rep.Search(ctx, word)
+
+			tasks, err := rep.Search(ctx, word)
 			if err != nil {
 				err = fmt.Errorf("error at search %s from %s: %w", word, rep.RepName(), err)
 				return nil, err
 			}
-			for _, kyou := range kyous {
-				if _, exist := m[kyou.ID]; !exist {
-					m[kyou.ID] = map[string]bool{}
+			for _, task := range tasks {
+				task, err := rep.GetTask(ctx, task.ID)
+				if err != nil {
+					continue // CheckStateInfoが混ざっているのでエラー発生したら無視
 				}
-				m[kyou.ID][word] = true
-				hitKyous[kyou.ID] = kyou
+				if _, exist := m[task.TaskID]; !exist {
+					m[task.TaskID] = map[string]bool{}
+				}
+				m[task.TaskID][word] = true
+				hitTasks[task.TaskID] = task
 			}
 		}
 		for _, textRep := range textReps {
@@ -1902,8 +2047,8 @@ func andSearch(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, wo
 
 				for _, text := range texts {
 					found := false
-					for _, kyou := range allKyous {
-						if kyou.ID == text.Target {
+					for _, task := range allTasks {
+						if task.TaskID == text.Target {
 							found = true
 							break
 						}
@@ -1930,7 +2075,7 @@ func andSearch(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, wo
 		}
 	}
 
-	kyous := []*kyou.Kyou{}
+	tasks := []*mi.Task{}
 	ids := []string{}
 	for id, wordMap := range m {
 		allMatch := true
@@ -1946,13 +2091,13 @@ func andSearch(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, wo
 	}
 
 	for _, id := range ids {
-		kyou, exist := hitKyous[id]
+		task, exist := hitTasks[id]
 		if !exist {
 			found := false
-			for _, k := range allKyous {
-				if k.ID == kyou.ID {
+			for _, k := range allTasks {
+				if k.TaskID == task.TaskID {
 					found = true
-					kyou = k
+					task = k
 					break
 				}
 			}
@@ -1961,203 +2106,9 @@ func andSearch(ctx context.Context, reps []rykv.Rep, textReps []text.TextRep, wo
 				return nil, err
 			}
 		}
-		kyous = append(kyous, kyou)
+		tasks = append(tasks, task)
 	}
-	return kyous, nil
-}
-
-// TagFilterMode .
-// タグの検索モード。And, Or, Onlyのいずれか
-type TagFilterMode string
-
-// TagFilterModeの一覧
-const (
-	And  TagFilterMode = "and"
-	Or   TagFilterMode = "or"
-	Only TagFilterMode = "only"
-)
-
-func filterTags(ctx context.Context, matchKyous map[string]*kyou.Kyou, tagReps []tag.TagRep, tags []string, mode TagFilterMode) (map[string]*kyou.Kyou, error) {
-	// タグを持っていないidを取得する
-	noHaveTagIDs := map[string]*kyou.Kyou{}
-	haveTagIDs := map[string]struct{}{}
-	for _, tagrep := range tagReps {
-		allTags, err := tagrep.GetAllTags(ctx)
-		if err != nil {
-			err = fmt.Errorf("error at get all tags from tagrep %s: %w", tagrep.Path(), err)
-			return nil, err
-		}
-		for _, tag := range allTags {
-			haveTagIDs[tag.Target] = struct{}{}
-		}
-	}
-	for _, id := range matchKyous {
-		if _, exist := haveTagIDs[id.ID]; !exist {
-			noHaveTagIDs[id.ID] = id
-		}
-	}
-
-	if mode == Or {
-		// tagがあり、or検索の場合は、タグにヒットしたやつすべて
-		temp := map[string]*kyou.Kyou{}
-		for _, tagrep := range tagReps {
-			for _, tagname := range tags {
-				tags, err := tagrep.GetTagsByName(ctx, tagname)
-				if err != nil {
-					err = fmt.Errorf("error at get tag by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
-					return nil, err
-				}
-				for _, tag := range tags {
-					if id, exist := matchKyous[tag.Target]; exist {
-						temp[id.ID] = id
-					}
-				}
-			}
-		}
-		// notagが含まれたらタグを持っていないkyouを追加する
-		for _, tag := range tags {
-			if tag == NoTag {
-				for _, id := range noHaveTagIDs {
-					temp[id.ID] = id
-				}
-			}
-		}
-		matchKyous = map[string]*kyou.Kyou{}
-		for _, id := range temp {
-			_, exist := matchKyous[id.ID]
-			if !exist {
-				matchKyous[id.ID] = id
-			}
-		}
-		return filterHiddenTags(ctx, matchKyous, tagReps, tags)
-	}
-
-	temp := []*kyou.Kyou{}
-	for _, tag := range tags {
-		if tag == NoTag {
-			for _, id := range noHaveTagIDs {
-				temp = append(temp, id)
-			}
-		}
-	}
-	for i, tagname := range tags {
-		switch i {
-		case 0:
-			for _, tagrep := range tagReps {
-				tags, err := tagrep.GetTagsByName(ctx, tagname)
-				if err != nil {
-					err = fmt.Errorf("error at get tags by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
-					return nil, err
-				}
-				for _, tag := range tags {
-					if id, exist := matchKyous[tag.Target]; exist {
-						temp = append(temp, id)
-					}
-				}
-			}
-		default:
-			temppp := []*kyou.Kyou{}
-			for _, tagrep := range tagReps {
-				tags, err := tagrep.GetTagsByName(ctx, tagname)
-				if err != nil {
-					err = fmt.Errorf("failed to get tag by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
-					return nil, err
-				}
-
-				ids := []*kyou.Kyou{}
-				for _, tag := range tags {
-					if id, exist := matchKyous[tag.Target]; exist {
-						ids = append(ids, id)
-					}
-				}
-
-				for _, existID := range temp {
-					exist := false
-					for _, id := range ids {
-						if existID.ID == id.ID {
-							exist = true
-						}
-					}
-					if exist {
-						temppp = append(temppp, existID)
-					}
-				}
-			}
-			temp = temppp
-		}
-	}
-	matchKyous = map[string]*kyou.Kyou{}
-	for _, id := range temp {
-		_, exist := matchKyous[id.ID]
-		if !exist {
-			matchKyous[id.ID] = id
-		}
-	}
-
-	// OnlyModeでNoTagが含まれたらAnd検索結果と同義なので
-	if mode == And || (mode == Only && equal([]string{NoTag}, tags)) {
-		return filterHiddenTags(ctx, matchKyous, tagReps, tags)
-	} else if mode == Only {
-		allTags := []*tag.Tag{}
-		for _, tagrep := range tagReps {
-			tags, err := tagrep.GetAllTags(ctx)
-			if err != nil {
-				err = fmt.Errorf("error at get all tags from %s: %w", tagrep.Path(), err)
-				return nil, err
-			}
-			allTags = append(allTags, tags...)
-		}
-
-		// requestされたtagじゃないものがあったら除去する
-		sortedTags := sort.StringSlice(tags)
-		unMatchKyouIDs := map[string]struct{}{}
-		for target := range matchKyous {
-			attachedTagsMap := map[string]struct{}{}
-			for _, tag := range allTags {
-				if tag.Target == target {
-					attachedTagsMap[tag.Tag] = struct{}{}
-				}
-			}
-			attachedTags := []string{}
-			for attachedTag := range attachedTagsMap {
-				attachedTags = append(attachedTags, attachedTag)
-			}
-			sort.Strings(attachedTags)
-			if !equal(sortedTags, attachedTags) {
-				unMatchKyouIDs[target] = struct{}{}
-			}
-		}
-		for unMatchKyouID := range unMatchKyouIDs {
-			delete(matchKyous, unMatchKyouID)
-		}
-		return filterHiddenTags(ctx, matchKyous, tagReps, tags)
-	}
-	err := fmt.Errorf("invalid 'mode' value: %s", mode)
-	return nil, err
-}
-
-func filterHiddenTags(ctx context.Context, matchKyous map[string]*kyou.Kyou, tagReps []tag.TagRep, tags []string) (map[string]*kyou.Kyou, error) {
-loop:
-	for _, hiddenTag := range config.ApplicationConfig.HiddenTags {
-		for _, tag := range tags {
-			if hiddenTag == tag {
-				continue loop
-			}
-		}
-		for _, tagrep := range tagReps {
-			tags, err := tagrep.GetTagsByName(ctx, hiddenTag)
-			if err != nil {
-				err = fmt.Errorf("error at get tags by name from %s: %w", tagrep.Path(), err)
-				return nil, err
-			}
-			for _, tag := range tags {
-				if _, exist := matchKyous[tag.Target]; exist {
-					delete(matchKyous, tag.Target)
-				}
-			}
-		}
-	}
-	return matchKyous, nil
+	return tasks, nil
 }
 
 func equal(a, b []string) bool {

@@ -161,13 +161,15 @@ export default class MiServerAPI {
         })
         const json = await res.json()
         const response: GetTasksFromBoardResponse = json
-        for (let i = 0; i < response.boards_tasks.length; i++) {
-            response.boards_tasks[i].board_info.updated_time = new Date(response.boards_tasks[i].board_info.updated_time)
-            response.boards_tasks[i].check_state_info.updated_time = new Date(response.boards_tasks[i].check_state_info.updated_time)
-            response.boards_tasks[i].limit_info.updated_time = new Date(response.boards_tasks[i].limit_info.updated_time)
-            response.boards_tasks[i].limit_info.limit = response.boards_tasks[i].limit_info.limit ? new Date(response.boards_tasks[i].limit_info.limit!) : null
-            response.boards_tasks[i].task.created_time = new Date(response.boards_tasks[i].task.created_time)
-            response.boards_tasks[i].task_title_info.updated_time = new Date(response.boards_tasks[i].task_title_info.updated_time)
+        if (response.boards_tasks) {
+            for (let i = 0; i < response.boards_tasks.length; i++) {
+                response.boards_tasks[i].board_info.updated_time = new Date(response.boards_tasks[i].board_info.updated_time)
+                response.boards_tasks[i].check_state_info.updated_time = new Date(response.boards_tasks[i].check_state_info.updated_time)
+                response.boards_tasks[i].limit_info.updated_time = new Date(response.boards_tasks[i].limit_info.updated_time)
+                response.boards_tasks[i].limit_info.limit = response.boards_tasks[i].limit_info.limit ? new Date(response.boards_tasks[i].limit_info.limit!) : null
+                response.boards_tasks[i].task.created_time = new Date(response.boards_tasks[i].task.created_time)
+                response.boards_tasks[i].task_title_info.updated_time = new Date(response.boards_tasks[i].task_title_info.updated_time)
+            }
         }
         return response
     }

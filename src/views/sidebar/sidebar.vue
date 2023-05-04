@@ -56,7 +56,7 @@ defineExpose({
     set_checked_tags_by_application,
     get_checked_tags,
     construct_task_search_query,
-    check_all_tags
+    check_all_tags,
 })
 
 function updated_check_condition(updated_check_state: CheckState) {

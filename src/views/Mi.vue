@@ -39,7 +39,7 @@
         <v-btn color="white" icon="mdi-plus" variant="text" @click="show_add_task_dialog" />
     </v-avatar>
 
-    <add_task_dialog @errors="write_messages" @added_task="added_task" ref="add_task_dialog_ref" />
+    <add_task_dialog :option="option" @errors="write_messages" @added_task="added_task" ref="add_task_dialog_ref" />
 
     <v-snackbar v-model="show_message_snackbar">
         <v-row>
@@ -82,6 +82,7 @@ const query_map: Ref<any> = ref({})
 const task_infos_map: Ref<any> = ref({})
 
 update_option()
+nextTick(() => update_option().then(() => open_board(option.value?.default_board_name)))
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 function floatingActionButtonStyle() {
@@ -92,10 +93,10 @@ function floatingActionButtonStyle() {
         'width': '50px'
     }
 }
-function update_option(): void {
+async function update_option() {
     const api = new MiServerAPI()
     const request = new GetApplicationConfigRequest()
-    api.get_application_config(request)
+    await api.get_application_config(request)
         .then(res => {
             if (res.errors && res.errors.length != 0) {
                 write_messages(res.errors)

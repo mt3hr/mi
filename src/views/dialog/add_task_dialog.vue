@@ -46,7 +46,13 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import GetBoardNamesRequest from '@/api/GetBoardNamesRequest';
 import input_new_board_name_dialog from './input_new_board_name_dialog.vue';
 import generate_uuid from '@/generate_uuid';
+import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
 
+interface Props {
+    option: ApplicationConfig
+}
+
+const props = defineProps<Props>()
 const emits = defineEmits<{
     (e: 'errors', errors: Array<string>): void
     (e: 'added_task', task_info: TaskInfo): void
@@ -55,7 +61,7 @@ const emits = defineEmits<{
 const now = new Date(Date.now())
 const board_names: Ref<Array<string>> = ref(new Array<string>())
 const task_title: Ref<string> = ref("")
-const board_name: Ref<string> = ref("")
+const board_name: Ref<string> = ref(props.option!.default_board_name)
 const is_show: Ref<boolean> = ref(false)
 const has_limit: Ref<boolean> = ref(false)
 const limit_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
@@ -66,6 +72,10 @@ const input_new_board_name_dialog_ref = ref<InstanceType<typeof input_new_board_
 defineExpose({ show })
 
 update_board_names()
+
+watch(() => props.option, () => {
+    board_name.value = props.option!.default_board_name
+})
 
 function update_board_names() {
     const api = new MiServerAPI()
