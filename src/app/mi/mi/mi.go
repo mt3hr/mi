@@ -1117,7 +1117,7 @@ func launchServer() error {
 			sort.Slice(hasLimitTaskInfos, func(i int, j int) bool {
 				limitI := *hasLimitTaskInfos[i].LimitInfo.Limit
 				limitJ := *hasLimitTaskInfos[j].LimitInfo.Limit
-				return limitI.After(limitJ)
+				return limitI.Before(limitJ)
 			})
 
 			sort.Slice(noLimitTaskInfos, func(i int, j int) bool {

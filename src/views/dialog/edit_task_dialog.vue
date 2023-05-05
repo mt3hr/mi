@@ -54,7 +54,7 @@ const props = defineProps<Props>()
 
 const emits = defineEmits<{
     (e: 'errors', errors: Array<string>): void
-    (e: 'updated_task', task_info: TaskInfo): void
+    (e: 'updated_task', old_task_info: TaskInfo, new_task_info: TaskInfo): void
 }>()
 
 const now = new Date(Date.now())
@@ -103,7 +103,7 @@ function submit() {
                 emit_errors(res.errors)
                 return
             }
-            emit_updated_task(request.task_info)
+            emit_updated_task(props.task_info, request.task_info)
             clear_fields()
             close_dialog()
         })
@@ -156,8 +156,8 @@ function construct_task_info() {
 function emit_errors(errors: Array<string>) {
     emits("errors", errors)
 }
-function emit_updated_task(updated_task: TaskInfo) {
-    emits("updated_task", updated_task)
+function emit_updated_task(old_task_info: TaskInfo, updated_task: TaskInfo) {
+    emits("updated_task", old_task_info, updated_task)
 }
 </script>
 

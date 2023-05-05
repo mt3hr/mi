@@ -59,7 +59,7 @@ const emits = defineEmits<{
     (e: 'copied_task_id', task_info: TaskInfo): void
     (e: 'added_tag'): void
     (e: 'added_text'): void
-    (e: 'updated_task', task_info: TaskInfo): void
+    (e: 'updated_task', old_task_info: TaskInfo, new_task_info: TaskInfo): void
     (e: 'deleted_task', task_info: TaskInfo): void
     (e: 'deleted_tag'): void
     (e: 'deleted_text'): void
@@ -114,7 +114,7 @@ watch(check, () => {
                 emit_errors(res.errors)
                 return
             }
-            emit_updated_task(new_task_info)
+            emit_updated_task(props.task_info, new_task_info)
         })
 
 })
@@ -169,8 +169,8 @@ function emit_added_tag() {
 function emit_added_text() {
     emits("added_text")
 }
-function emit_updated_task(updated_task_info: TaskInfo) {
-    emits("updated_task", updated_task_info)
+function emit_updated_task(old_task_info: TaskInfo, new_task_info: TaskInfo) {
+    emits("updated_task", old_task_info, new_task_info)
 }
 function emit_deleted_task(deleted_task_info: TaskInfo) {
     emits("deleted_task", deleted_task_info)

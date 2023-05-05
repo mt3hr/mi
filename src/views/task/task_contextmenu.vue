@@ -46,7 +46,7 @@ const emits = defineEmits<{
     (e: 'copied_task_id', task_info: TaskInfo): void
     (e: 'added_tag'): void
     (e: 'added_text'): void
-    (e: 'updated_task', task_info: TaskInfo): void
+    (e: 'updated_task', old_task_info: TaskInfo, new_task_info: TaskInfo): void
     (e: 'deleted_task', task_info: TaskInfo): void
 }>()
 
@@ -83,7 +83,6 @@ function copy_task_id_to_clipboard() {
 }
 function show_edit_task_dialog() {
     edit_task_dialog_ref.value!.show()
-    emit_copied_task_id()
 }
 function show_delete_task_dialog() {
     delete_task_dialog_ref.value!.show()
@@ -101,8 +100,8 @@ function emit_added_tag() {
 function emit_added_text() {
     emits("added_text")
 }
-function emit_updated_task(updated_task_info: TaskInfo) {
-    emits("updated_task", updated_task_info)
+function emit_updated_task(old_task_info: TaskInfo, new_task_info: TaskInfo) {
+    emits("updated_task", old_task_info, new_task_info)
 }
 function emit_deleted_task(deleted_task_info: TaskInfo) {
     emits("deleted_task", deleted_task_info)

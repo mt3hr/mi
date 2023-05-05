@@ -16,9 +16,7 @@
     <v-main>
         <v-container>
             <v-row class="boards_wrap">
-                <v-col class="board_wrap" cols="auto" v-for="board_name in opened_board_names" :key="board_name"
-                    @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
-                    @updated_task="updated_task" @deleted_task="deleted_task">
+                <v-col class="board_wrap" cols="auto" v-for="board_name in opened_board_names" :key="board_name">
                     <board :board_name="board_name" :selected_board_name="watching_board_name"
                         :task_infos="task_infos_map[board_name]" @errors="write_messages" @copied_task_id="copied_task_id"
                         @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
@@ -30,7 +28,8 @@
                 <v-col class="detail_task_wrap" cols="auto">
                     <detail_task v-if="watching_task_info" :task_info="watching_task_info" @copied_task_id="copied_task_id"
                         @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
-                        @deleted_task="deleted_task" @deleted_tag="deleted_tag" @deleted_text="deleted_text" ref="detail_task_ref" />
+                        @deleted_task="deleted_task" @deleted_tag="deleted_tag" @deleted_text="deleted_text"
+                        ref="detail_task_ref" />
                 </v-col>
             </v-row>
         </v-container>
@@ -238,14 +237,19 @@ function added_text() {
     detail_task_ref.value?.update_tags()
     detail_task_ref.value?.update_texts()
 }
-function updated_task(task_info: TaskInfo) {
-    const target_board_name = task_info.board_info.board_name
-    if (is_opened_board(target_board_name)) {
-        select_board(target_board_name)
-        update_board(target_board_name)
+function updated_task(old_task_info: TaskInfo, new_task_info: TaskInfo) {
+    const old_board_name = old_task_info.board_info.board_name
+    const new_board_name = new_task_info.board_info.board_name
+    if (is_opened_board(old_board_name)) {
+        select_board(old_board_name)
+        update_board(old_board_name)
     }
-    if (watching_task_info.value?.task.task_id=== task_info.task?.task_id) {
-        watching_task_info.value = task_info
+    if (is_opened_board(new_board_name)) {
+        select_board(new_board_name)
+        update_board(new_board_name)
+    }
+    if (watching_task_info.value?.task.task_id === new_task_info.task?.task_id) {
+        watching_task_info.value = new_task_info
     }
 }
 function deleted_task(task_info: TaskInfo) {
@@ -254,7 +258,7 @@ function deleted_task(task_info: TaskInfo) {
         select_board(target_board_name)
         update_board(target_board_name)
     }
-    if (watching_task_info.value?.task.task_id=== task_info.task?.task_id) {
+    if (watching_task_info.value?.task.task_id === task_info.task?.task_id) {
         select_board(null)
     }
 }
