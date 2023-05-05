@@ -1,5 +1,6 @@
 <template>
-    <v-card @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task" class="pa-0 ma-0">
+    <v-card @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task" class="pa-0 ma-0" draggable="true"
+        @dragstart="dragstart">
         <table>
             <tr>
                 <td>
@@ -110,6 +111,9 @@ function emit_deleted_task(deleted_task_info: TaskInfo) {
 }
 function emit_clicked_task() {
     emits("clicked_task", props.task_info)
+}
+function dragstart(e: DragEvent) {
+    e.dataTransfer!.setData("mi/task_info", JSON.stringify(props.task_info))
 }
 </script>
 
