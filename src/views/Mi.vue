@@ -216,6 +216,7 @@ function added_task(task_info: TaskInfo) {
         select_board(target_board_name)
         update_board(target_board_name)
     }
+    write_message("タスクを追加しました")
 }
 function updated_tags_by_user() {
     if (watching_board_name.value) {
@@ -232,10 +233,12 @@ function added_tag() {
     detail_task_ref.value?.update_tags()
     detail_task_ref.value?.update_texts()
     sidebar_ref.value?.update_tag_struct_promise()
+    write_message("タグを追加しました")
 }
 function added_text() {
     detail_task_ref.value?.update_tags()
     detail_task_ref.value?.update_texts()
+    write_message("テキストを追加しました")
 }
 function updated_task(old_task_info: TaskInfo, new_task_info: TaskInfo) {
     const old_board_name = old_task_info.board_info.board_name
@@ -251,6 +254,7 @@ function updated_task(old_task_info: TaskInfo, new_task_info: TaskInfo) {
     if (watching_task_info.value?.task.task_id === new_task_info.task?.task_id) {
         watching_task_info.value = new_task_info
     }
+    write_message("タスクを更新しました")
 }
 function deleted_task(task_info: TaskInfo) {
     const target_board_name = task_info.board_info.board_name
@@ -261,14 +265,17 @@ function deleted_task(task_info: TaskInfo) {
     if (watching_task_info.value?.task.task_id === task_info.task?.task_id) {
         select_board(null)
     }
+    write_message("タスクを削除しました")
 }
 function deleted_tag() {
     detail_task_ref.value?.update_tags()
     detail_task_ref.value?.update_texts()
+    write_message("タグを削除しました")
 }
 function deleted_text() {
     detail_task_ref.value?.update_tags()
     detail_task_ref.value?.update_texts()
+    write_message("テキストを削除しました")
 }
 </script>
 <style></style>
