@@ -109,6 +109,11 @@ function submit() {
         })
 }
 function show() {
+    task_title.value = props.task_info.task_title_info.title
+    board_name.value = props.task_info.board_info.board_name
+    has_limit.value = !(!props.task_info.limit_info.limit)
+    limit_date.value = has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${props.task_info.limit_info.limit!.getMonth().toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    limit_time.value = has_limit.value ? `${props.task_info.limit_info.limit!.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getSeconds().toString().padStart(2, '0')}` : "00:00:00"
     update_board_names().then(() => is_show.value = true)
 }
 function clear_fields() {
@@ -165,6 +170,7 @@ function emit_updated_task(old_task_info: TaskInfo, updated_task: TaskInfo) {
 .input_date {
     width: 120px;
 }
+
 .input_time {
     width: 120px;
 }
