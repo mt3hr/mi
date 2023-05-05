@@ -4,18 +4,18 @@
             <v-card-title>
                 新規板名
             </v-card-title>
-            <v-text-field v-model="board_name" @keypress.enter="submit" tabindex="101" />
+            <v-text-field v-model="board_name" @keypress.enter="submit" :autofocus="true" />
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
-                        <v-btn @click="close_dialog" tabindex="103">
-                            キャンセル
+                        <v-btn @click="submit">
+                            決定
                         </v-btn>
                     </v-col>
                     <v-spacer />
                     <v-col cols="auto">
-                        <v-btn @click="submit" tabindex="102">
-                            決定
+                        <v-btn @click="close_dialog">
+                            キャンセル
                         </v-btn>
                     </v-col>
                 </v-row>
@@ -35,7 +35,7 @@ const emits = defineEmits<{
 let board_name: Ref<string> = ref("")
 let is_show: Ref<boolean> = ref(false)
 
-defineExpose({show})
+defineExpose({ show })
 
 watch(() => is_show.value, () => {
     is_show.value = is_show.value

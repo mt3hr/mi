@@ -144,7 +144,9 @@ async function check_all_tags() {
     await tag_list_ref.value?.check_all_tags()
 }
 async function update_tag_struct_promise() {
-    await tag_list_ref.value?.update_tag_struct_promise()
+    const checked_tags = get_checked_tags()
+    await tag_list_ref.value?.update_tags_promise()
+    set_checked_tags_by_application(checked_tags)
 }
 async function update_board_struct_promise() {
     await board_list_ref.value?.update_boards_promise()

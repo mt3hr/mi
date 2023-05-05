@@ -8,14 +8,14 @@
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
-                        <v-btn @click="close_dialog" tabindex="103">
-                            キャンセル
+                        <v-btn @click="delete_tag" :autofocus="true">
+                            削除
                         </v-btn>
                     </v-col>
                     <v-spacer />
                     <v-col cols="auto">
-                        <v-btn @click="delete_tag" tabindex="102">
-                            削除
+                        <v-btn @click="close_dialog">
+                            キャンセル
                         </v-btn>
                     </v-col>
                 </v-row>
@@ -44,7 +44,7 @@ const emits = defineEmits<{
 
 let is_show: Ref<boolean> = ref(false)
 
-defineExpose({show})
+defineExpose({ show })
 
 watch(() => is_show.value, () => {
     is_show.value = is_show.value
@@ -79,5 +79,4 @@ function emit_deleted_tag() {
 }
 </script>
 
-<style>
-</style>
+<style></style>

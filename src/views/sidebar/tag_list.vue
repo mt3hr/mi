@@ -32,7 +32,7 @@ defineExpose({
     set_checked_tags_by_application,
     get_checked_tags,
     check_all_tags,
-    update_tag_struct_promise
+    update_tags_promise
 })
 
 update_tags_promise()

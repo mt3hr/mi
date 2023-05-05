@@ -8,17 +8,17 @@
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
-                        <v-btn @click="close_dialog" tabindex="103">
-                            キャンセル
+                        <v-btn @click="delete_text" :autofocus="true">
+                            削除
                         </v-btn>
                     </v-col>
                     <v-spacer />
                     <v-col cols="auto">
-                        <v-btn @click="delete_text" tabindex="102">
-                            削除
+                        <v-btn @click="close_dialog">
+                            キャンセル
                         </v-btn>
                     </v-col>
-                </v-row>
+               </v-row>
             </v-card-actions>
         </v-card>
     </v-dialog>
@@ -32,7 +32,7 @@ import TaskInfo from '@/api/data_struct/TaskInfo';
 import { Ref, ref, watch } from 'vue';
 
 interface Props {
-    text: Text 
+    text: Text
     task_info: TaskInfo
 }
 
@@ -44,7 +44,7 @@ const emits = defineEmits<{
 
 let is_show: Ref<boolean> = ref(false)
 
-defineExpose({show})
+defineExpose({ show })
 
 watch(() => is_show.value, () => {
     is_show.value = is_show.value
@@ -79,5 +79,4 @@ function emit_deleted_text() {
 }
 </script>
 
-<style>
-</style>
+<style></style>

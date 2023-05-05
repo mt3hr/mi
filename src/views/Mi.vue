@@ -302,9 +302,7 @@ function update_board_struct() {
     height: calc((100vh - 50px) / 2);
     max-height: calc((100vh - 50px) / 2);
     min-height: calc((100vh - 50px) / 2);
-    width: 100vw;
-    max-width: 100vw;
-    min-width: 100vw;
+    overflow-y: scroll;
 }
 
 .boards_wrap {

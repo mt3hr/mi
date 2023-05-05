@@ -4,18 +4,18 @@
             <v-card-title>
                 テキスト追加
             </v-card-title>
-            <v-textarea v-model="text" tabindex="101" />
+            <v-textarea v-model="text" :autofocus="true" />
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
-                        <v-btn @click="close_dialog" tabindex="103">
-                            キャンセル
+                        <v-btn @click="submit">
+                            追加
                         </v-btn>
                     </v-col>
                     <v-spacer />
                     <v-col cols="auto">
-                        <v-btn @click="submit" tabindex="102">
-                            追加
+                        <v-btn @click="close_dialog">
+                            キャンセル
                         </v-btn>
                     </v-col>
                 </v-row>
@@ -43,7 +43,7 @@ const emits = defineEmits<{
 let text: Ref<string> = ref("")
 let is_show: Ref<boolean> = ref(false)
 
-defineExpose({show})
+defineExpose({ show })
 
 watch(() => is_show.value, () => {
     is_show.value = is_show.value

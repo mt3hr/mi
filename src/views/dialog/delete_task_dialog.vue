@@ -8,14 +8,14 @@
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
-                        <v-btn @click="close_dialog" tabindex="103">
-                            キャンセル
+                        <v-btn @click="delete_task" :autofocus="true">
+                            削除
                         </v-btn>
                     </v-col>
                     <v-spacer />
                     <v-col cols="auto">
-                        <v-btn @click="delete_task" tabindex="102">
-                            削除
+                        <v-btn @click="close_dialog">
+                            キャンセル
                         </v-btn>
                     </v-col>
                 </v-row>

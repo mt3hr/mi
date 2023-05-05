@@ -4,7 +4,7 @@
             <v-card-title>
                 タスク編集
             </v-card-title>
-            <v-text-field v-model="task_title" tabindex="101" :label="'タイトル'" />
+            <v-text-field v-model="task_title" :label="'タイトル'" :autofocus="true" />
             <v-row>
                 <v-col cols="10">
                     <v-select :items="board_names" :label="'板名'" v-model="board_name" />
@@ -16,19 +16,19 @@
                 </v-col>
             </v-row>
             <v-checkbox v-model="has_limit" :label="'期日'" />
-            <input type="date" v-if="has_limit" v-model="limit_date" />
-            <input type="time" v-if="has_limit" v-model="limit_time" />
+            <input class="input_date" type="date" v-if="has_limit" v-model="limit_date" />
+            <input class="input_time" type="time" v-if="has_limit" v-model="limit_time" />
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
-                        <v-btn @click="close_dialog" tabindex="112">
-                            キャンセル
+                        <v-btn @click="submit">
+                            適用
                         </v-btn>
                     </v-col>
                     <v-spacer />
                     <v-col cols="auto">
-                        <v-btn @click="submit" tabindex="111">
-                            適用
+                        <v-btn @click="close_dialog">
+                            キャンセル
                         </v-btn>
                     </v-col>
                 </v-row>
@@ -161,4 +161,11 @@ function emit_updated_task(old_task_info: TaskInfo, updated_task: TaskInfo) {
 }
 </script>
 
-<style></style>
+<style>
+.input_date {
+    width: 120px;
+}
+.input_time {
+    width: 120px;
+}
+</style>

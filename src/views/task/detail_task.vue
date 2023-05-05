@@ -5,13 +5,6 @@
         </v-card-title>
         <table>
             <tr>
-                <td v-for="tag_data in tags" :key="tag_data.id">
-                    <tag :tag="tag_data" @deleted_tag="deleted_tag" @errors="emit_errors" />
-                </td>
-            </tr>
-        </table>
-        <table>
-            <tr>
                 <td>
                     <v-checkbox v-model="check" class="pa-0 ma-0" />
                 </td>
@@ -23,7 +16,13 @@
                 </td>
             </tr>
         </table>
-
+        <table>
+            <tr>
+                <td v-for="tag_data in tags" :key="tag_data.id">
+                    <tag :tag="tag_data" @deleted_tag="deleted_tag" @errors="emit_errors" />
+                </td>
+            </tr>
+        </table>
         <table>
             <tr v-for="text_data in texts" :key="text_data.id">
                 <td>
