@@ -159,6 +159,7 @@ function close_board(board_name: string) {
 async function select_board(board_name: string | null) {
     watching_board_name.value = board_name
     if (!board_name || board_name === "") {
+        watching_task_info.value = null
         return
     }
     if (!query_map.value[board_name!]) {
