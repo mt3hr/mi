@@ -60,31 +60,24 @@ defineExpose({
 })
 
 function updated_check_condition(updated_check_state: CheckState) {
-    //TODO
     emit_updated_check_condition(updated_check_state)
 }
 function updated_sort_type(updated_sort_type: SortType) {
-    //TODO
     emit_updated_sort_type(updated_sort_type)
 }
 function updated_search_word(updated_word: string) {
-    //TODO
     emit_updated_search_word(updated_word)
 }
 function updated_boards_by_user() {
-    //TODO
     emit_updated_boards_by_user()
 }
 function clicked_board(updated_board: string) {
-    //TODO
     emit_clicked_board(updated_board)
 }
 function updated_tags_by_user() {
-    //TODO
     emit_updated_tags_by_user()
 }
 function updated_checked_tags(checked_tags: Array<string>) {
-    //TODO
     emit_updated_checked_tags(checked_tags)
 }
 function construct_task_search_query(): TaskSearchQuery {

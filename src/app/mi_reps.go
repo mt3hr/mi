@@ -239,7 +239,6 @@ func (m MiReps) AddBoardInfo(boardInfo *BoardInfo) error {
 }
 
 func (m MiReps) GetTasksAtBoard(ctx context.Context, query *SearchTaskQuery) ([]*Task, error) {
-	//TODO タグによる絞り込みはここからではできないのでhandlerあたりで絞って
 	matchTasks := []*Task{}
 	taskInfos := map[string]*TaskInfo{}
 	tasks, err := m.GetAllTasks(ctx)

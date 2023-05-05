@@ -63,10 +63,10 @@ function emit_copied_task_id(task_info: TaskInfo) {
     emits("copied_task_id", task_info)
 }
 function emit_added_tag() {
-    emits("added_tag")//TODO 一貫性をもたせるならばAPIでTask取得してEmitしたほうがいい
+    emits("added_tag")
 }
 function emit_added_text() {
-    emits("added_text")//TODO 一貫性をもたせるならばAPIでText取得してEmitしたほうがいい
+    emits("added_text")
 }
 function emit_updated_task(updated_task_info: TaskInfo) {
     emits("updated_task", updated_task_info)

@@ -30,7 +30,7 @@
                 <v-col class="detail_task_wrap" cols="auto">
                     <detail_task v-if="watching_task_info" :task_info="watching_task_info" @copied_task_id="copied_task_id"
                         @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
-                        @deleted_task="deleted_task" @deleted_tag="deleted_tag" @deleted_text="deleted_text" />
+                        @deleted_task="deleted_task" @deleted_tag="deleted_tag" @deleted_text="deleted_text" ref="detail_task_ref" />
                 </v-col>
             </v-row>
         </v-container>
@@ -78,6 +78,7 @@ const watching_task_info: Ref<TaskInfo | null> = ref(null)
 const watching_board_name: Ref<string | null> = ref(null)
 const sidebar_ref = ref<InstanceType<typeof sidebar> | null>(null);
 const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(null);
+const detail_task_ref = ref<InstanceType<typeof detail_task> | null>(null);
 const query_map: Ref<any> = ref({})
 const task_infos_map: Ref<any> = ref({})
 
@@ -191,7 +192,7 @@ function updated_search_word(word: string) {
 function updated_boards_by_user() {
     update_board(watching_board_name.value!)
 }
-function clicked_board_at_sidebar(board_name: string) {
+function is_opened_board(board_name: string): boolean {
     let opened = false
     for (let i = 0; i < opened_board_names.value.length; i++) {
         if (opened_board_names.value[i] === board_name) {
@@ -199,7 +200,10 @@ function clicked_board_at_sidebar(board_name: string) {
             break
         }
     }
-    if (!opened) {
+    return opened
+}
+function clicked_board_at_sidebar(board_name: string) {
+    if (!is_opened_board(board_name)) {
         open_board(board_name)
     }
     select_board(board_name)
@@ -207,8 +211,12 @@ function clicked_board_at_sidebar(board_name: string) {
 function show_add_task_dialog() {
     add_task_dialog_ref.value?.show()
 }
-function added_task() {
-    //TODO
+function added_task(task_info: TaskInfo) {
+    const target_board_name = task_info.board_info.board_name
+    if (is_opened_board(target_board_name)) {
+        select_board(target_board_name)
+        update_board(target_board_name)
+    }
 }
 function updated_tags_by_user() {
     if (watching_board_name.value) {
@@ -216,28 +224,47 @@ function updated_tags_by_user() {
     }
 }
 function updated_checked_tags(tags: Array<string>) {
-    //TODO
+    return
 }
 function copied_task_id(task_info: TaskInfo) {
-    //TODO
+    write_message(`コピーしました`)
 }
 function added_tag() {
-    //TODO
+    detail_task_ref.value?.update_tags()
+    detail_task_ref.value?.update_texts()
+    //TODO tagstruct更新
 }
 function added_text() {
-    //TODO
+    detail_task_ref.value?.update_tags()
+    detail_task_ref.value?.update_texts()
 }
 function updated_task(task_info: TaskInfo) {
-    //TODO
+    const target_board_name = task_info.board_info.board_name
+    if (is_opened_board(target_board_name)) {
+        select_board(target_board_name)
+        update_board(target_board_name)
+    }
+    if (watching_task_info.value?.task.task_id=== task_info.task?.task_id) {
+        watching_task_info.value = task_info
+    }
 }
 function deleted_task(task_info: TaskInfo) {
-    //TODO
+    const target_board_name = task_info.board_info.board_name
+    if (is_opened_board(target_board_name)) {
+        select_board(target_board_name)
+        update_board(target_board_name)
+    }
+    if (watching_task_info.value?.task.task_id=== task_info.task?.task_id) {
+        select_board(null)
+    }
 }
 function deleted_tag() {
-    //TODO
+    detail_task_ref.value?.update_tags()
+    detail_task_ref.value?.update_texts()
 }
 function deleted_text() {
-    //TODO
+    detail_task_ref.value?.update_tags()
+    detail_task_ref.value?.update_texts()
 }
 </script>
 <style></style>

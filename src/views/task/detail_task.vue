@@ -39,7 +39,7 @@ import CheckStateInfo from '@/api/data_struct/CheckStateInfo';
 import TaskInfo from '@/api/data_struct/TaskInfo'
 import MiServerAPI from '@/api/MiServerAPI';
 import UpdateTaskRequest from '@/api/UpdateTaskRequest';
-import { Ref, ref, watch, nextTick } from 'vue';
+import { Ref, ref, watch, nextTick, defineExpose } from 'vue';
 import task_contextmenu from './task_contextmenu.vue';
 import generate_uuid from '@/generate_uuid';
 import tag from '../tag/tag.vue';
@@ -64,6 +64,11 @@ const emits = defineEmits<{
     (e: 'deleted_tag'): void
     (e: 'deleted_text'): void
 }>()
+
+defineExpose({
+    update_tags,
+    update_texts
+})
 
 let check: Ref<boolean> = ref(props.task_info.check_state_info.is_checked)
 let title: Ref<string> = ref(props.task_info.task_title_info.title)
@@ -159,10 +164,10 @@ function emit_copied_task_id() {
     emits("copied_task_id", props.task_info)
 }
 function emit_added_tag() {
-    emits("added_tag")//TODO 一貫性をもたせるならばAPIでTask取得してEmitしたほうがいい
+    emits("added_tag")
 }
 function emit_added_text() {
-    emits("added_text")//TODO 一貫性をもたせるならばAPIでText取得してEmitしたほうがいい
+    emits("added_text")
 }
 function emit_updated_task(updated_task_info: TaskInfo) {
     emits("updated_task", updated_task_info)
