@@ -319,6 +319,12 @@ function deleted_text() {
     max-width: 100vw;
     min-width: 100vw;
     overflow-x: scroll;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.boards_view::-webkit-scrollbar {
+    display: none;
 }
 
 .html {
