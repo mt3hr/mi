@@ -1,5 +1,8 @@
 <template>
-    <v-card @contextmenu.prevent.stop="show_contextmenu" class="pa-0 ma-0">
+    <v-card @contextmenu.prevent.stop="show_contextmenu" class="detail_task_card pa-0 ma-0">
+        <v-card-title>
+            タスク詳細
+        </v-card-title>
         <table>
             <tr>
                 <td v-for="tag_data in tags" :key="tag_data.id">
@@ -70,6 +73,7 @@ defineExpose({
     update_texts
 })
 
+let old_task_info: Ref<TaskInfo> = ref(props.task_info)
 let check: Ref<boolean> = ref(props.task_info.check_state_info.is_checked)
 let title: Ref<string> = ref(props.task_info.task_title_info.title)
 let limit: Ref<Date | null> = ref(props.task_info.limit_info.limit)
@@ -78,19 +82,23 @@ let texts: Ref<Array<Text>> = ref(new Array<Text>())
 let x_contextmenu: Ref<number> = ref(0)
 let y_contextmenu: Ref<number> = ref(0)
 const task_context_menu_ref = ref<InstanceType<typeof task_contextmenu> | null>(null);
-
+let updating_task_info = false
 update_tags()
 update_texts()
 
 watch(() => props.task_info, () => {
+    updating_task_info = true
     check.value = props.task_info.check_state_info.is_checked
     title.value = props.task_info.task_title_info.title
     limit.value = props.task_info.limit_info.limit
     update_tags()
     update_texts()
+    old_task_info.value = props.task_info
+    nextTick(() => updating_task_info = false)
 })
 
 watch(check, () => {
+    if (updating_task_info) return
     const api = new MiServerAPI()
 
     const new_task_info = new TaskInfo()

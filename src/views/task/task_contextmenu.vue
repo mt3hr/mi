@@ -80,6 +80,7 @@ function show_add_text_dialog() {
 }
 function copy_task_id_to_clipboard() {
     navigator.clipboard.writeText(props.task_info.task.task_id)
+    emit_copied_task_id()
 }
 function show_edit_task_dialog() {
     edit_task_dialog_ref.value!.show()

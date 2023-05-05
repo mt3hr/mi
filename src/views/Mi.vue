@@ -7,32 +7,29 @@
             @updated_checked_tags="updated_checked_tags" />
     </v-navigation-drawer>
 
-    <v-app-bar app color="indigo" flat dark>
+    <v-app-bar app color="indigo" flat dark height="50px">
         <v-app-bar-nav-icon @click.stop="show_drawer = !show_drawer" />
         <v-toolbar-title>mi</v-toolbar-title>
         <v-spacer />
     </v-app-bar>
 
-    <v-main>
-        <v-container>
-            <v-row class="boards_wrap">
-                <v-col class="board_wrap" cols="auto" v-for="board_name in opened_board_names" :key="board_name">
-                    <board :board_name="board_name" :selected_board_name="watching_board_name"
-                        :task_infos="task_infos_map[board_name]" @errors="write_messages" @copied_task_id="copied_task_id"
-                        @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
-                        @deleted_task="deleted_task" @clicked_task="set_watching_task" @close_board_request="close_board"
-                        @clicked_board="clicked_board_at_sidebar" />
-                </v-col>
-            </v-row>
-            <v-row class="detail_task_row">
-                <v-col class="detail_task_wrap" cols="auto">
-                    <detail_task v-if="watching_task_info" :task_info="watching_task_info" @copied_task_id="copied_task_id"
-                        @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
-                        @deleted_task="deleted_task" @deleted_tag="deleted_tag" @deleted_text="deleted_text"
-                        ref="detail_task_ref" />
-                </v-col>
-            </v-row>
-        </v-container>
+    <v-main class="main">
+        <div class="boards_view">
+            <table class="pa-0 ma-0">
+                <tr class="boards_wrap pa-0 ma-0">
+                    <td class="board_wrap pa-0 ma-0" cols="auto" v-for="board_name in opened_board_names" :key="board_name">
+                        <board class="pa-0 ma-0 board" :board_name="board_name" :selected_board_name="watching_board_name"
+                            :task_infos="task_infos_map[board_name]" @errors="write_messages"
+                            @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
+                            @updated_task="updated_task" @deleted_task="deleted_task" @clicked_task="set_watching_task"
+                            @close_board_request="close_board" @clicked_board="clicked_board_at_sidebar" />
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <detail_task class="detail_task pa-0 ma-0" v-if="watching_task_info" :task_info="watching_task_info"
+            @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
+            @deleted_task="deleted_task" @deleted_tag="deleted_tag" @deleted_text="deleted_text" ref="detail_task_ref" />
     </v-main>
     <v-avatar :style="floatingActionButtonStyle()" color="indigo" class="position-fixed">
         <v-btn color="white" icon="mdi-plus" variant="text" @click="show_add_task_dialog" />
@@ -41,14 +38,17 @@
     <add_task_dialog :option="option" @errors="write_messages" @added_task="added_task" ref="add_task_dialog_ref" />
 
     <v-snackbar v-model="show_message_snackbar">
-        <v-row>
-            <v-col cols="auto">
-                {{ message }}
-            </v-col>
-            <v-btn icon @click="show_message_snackbar = false">
-                <v-icon>mdi-close</v-icon>
-            </v-btn>
-        </v-row>
+        <v-container class="ma-0 pa-0">
+            <v-row class="ma-0 pa-0">
+                <v-col cols="11" class="ma-0 pa-0">
+                    <p>{{ message }}</p>
+                </v-col>
+                <v-col cols="1" class="ma-0 pa-0">
+                    <v-btn icon="mdi-close" @click="show_message_snackbar = false" width="20px" height="20px"
+                        class="ma-0 pa-0" />
+                </v-col>
+            </v-row>
+        </v-container>
     </v-snackbar>
 </template>
 
@@ -278,4 +278,50 @@ function deleted_text() {
     write_message("テキストを削除しました")
 }
 </script>
-<style></style>
+<style>
+.main {
+    padding-top: 50px;
+}
+
+.board {
+    height: calc((100vh - 50px) / 2);
+    max-height: calc((100vh - 50px) / 2);
+    min-height: calc((100vh - 50px) / 2);
+    width: 390px;
+    min-width: 390px;
+    max-width: 390px;
+    overflow-y: scroll;
+}
+
+.detail_task_card {
+    height: calc((100vh - 50px) / 2);
+    max-height: calc((100vh - 50px) / 2);
+    min-height: calc((100vh - 50px) / 2);
+    width: 100vw;
+    max-width: 100vw;
+    min-width: 100vw;
+}
+
+.boards_wrap {
+    height: calc((100vh - 50px) / 2);
+    max-height: calc((100vh - 50px) / 2);
+    min-height: calc((100vh - 50px) / 2);
+}
+
+.detail_task_row {
+    height: calc((100vh - 50px) / 2);
+    max-height: calc((100vh - 50px) / 2);
+    min-height: calc((100vh - 50px) / 2);
+}
+
+.boards_view {
+    width: 100vw;
+    max-width: 100vw;
+    min-width: 100vw;
+    overflow-x: scroll;
+}
+
+.html {
+    overflow-y: hidden;
+}
+</style>
