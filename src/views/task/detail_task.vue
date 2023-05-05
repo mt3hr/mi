@@ -25,8 +25,8 @@
         </table>
 
         <table>
-            <tr>
-                <td v-for="text_data in texts" :key="text_data.id">
+            <tr v-for="text_data in texts" :key="text_data.id">
+                <td>
                     <text_view :text="text_data" @deleted_text="deleted_text" @errors="emit_errors" />
                 </td>
             </tr>

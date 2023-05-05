@@ -1,15 +1,15 @@
 <template>
-    <v-dialog v-model="is_show">
+    <v-dialog v-model="is_show" :width="500">
         <v-card class="pa-5">
             <v-card-title>
                 タスク追加
             </v-card-title>
             <v-text-field v-model="task_title" tabindex="101" :label="'タイトル'" />
             <v-row>
-                <v-col cols="11">
+                <v-col cols="10">
                     <v-select :items="board_names" :label="'板名'" v-model="board_name" />
                 </v-col>
-                <v-col cols="1">
+                <v-col cols="2">
                     <v-btn icon="mdi-plus" @click="show_input_new_board_name_dialog">+</v-btn>
                     <input_new_board_name_dialog @errors="emit_errors" @inputed_board_name="add_and_set_board_name"
                         ref="input_new_board_name_dialog_ref" />
@@ -77,10 +77,10 @@ watch(() => props.option, () => {
     board_name.value = props.option!.default_board_name
 })
 
-function update_board_names() {
+async function update_board_names() {
     const api = new MiServerAPI()
     const request = new GetBoardNamesRequest()
-    api.get_board_names(request)
+    await api.get_board_names(request)
         .then(res => {
             if (res.errors && res.errors.length != 0) {
                 emit_errors(res.errors)
@@ -114,7 +114,9 @@ function submit() {
         })
 }
 function show() {
-    is_show.value = true
+    board_name.value = props.option.default_board_name
+    update_board_names()
+        .then(() => is_show.value = true)
 }
 function clear_fields() {
     const now = new Date(Date.now())

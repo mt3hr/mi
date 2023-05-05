@@ -27,6 +27,10 @@ let boards: Ref<any> = ref({})
 let board_structure: Ref<any> = ref({})
 const board_struct_ref = ref<InstanceType<typeof board_struct> | null>(null);
 
+defineExpose({
+    update_boards_promise
+})
+
 nextTick(() => {
     update_boards_promise()
         .then(() => { return update_board_struct_promise() })
@@ -132,8 +136,7 @@ function update_boards_promise() {
                 boardsTemp.push(t)
             })
             boards.value = boardsTemp
-        })
-        .then(() => { return update_board_struct_promise() })
+        }).then(() => { return update_board_struct_promise() })
 }
 
 function emit_clicked_board(board: string) {

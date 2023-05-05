@@ -1,16 +1,17 @@
 <template>
     <v-card @click="emit_clicked_board">
         <v-card-title :style="title_style">
-            <table>
-                <tr>
-                    <td>
+            <v-container class="pa-0 ma-0">
+                <v-row class="pa-0 ma-0">
+                    <v-col class="pa-0 ma-0" cols="auto">
                         {{ board_name }}
-                    </td>
-                    <td>
+                    </v-col>
+                    <v-spacer />
+                    <v-col class="pa-0 ma-0" cols="auto">
                         <v-btn icon="mdi-close" @click="emit_close_board_request" />
-                    </td>
-                </tr>
-            </table>
+                    </v-col>
+                </v-row>
+            </v-container>
         </v-card-title>
         <board_task v-for="task_info in task_infos" :key="task_info.task.task_id" :task_info="task_info"
             @errors="emit_errors" @copied_task_id="emit_copied_task_id" @added_tag="emit_added_tag"

@@ -1,5 +1,5 @@
 <template>
-    <v-dialog v-model="is_show">
+    <v-dialog v-model="is_show" :width="500">
         <v-card class="pa-5">
             <v-card-title>
                 テキスト追加

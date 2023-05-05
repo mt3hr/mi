@@ -57,7 +57,8 @@ defineExpose({
     get_checked_tags,
     construct_task_search_query,
     check_all_tags,
-    update_tag_struct_promise
+    update_tag_struct_promise,
+    update_board_struct_promise
 })
 
 function updated_check_condition(updated_check_state: CheckState) {
@@ -144,6 +145,9 @@ async function check_all_tags() {
 }
 async function update_tag_struct_promise() {
     await tag_list_ref.value?.update_tag_struct_promise()
+}
+async function update_board_struct_promise() {
+    await board_list_ref.value?.update_boards_promise()
 }
 </script>
 
