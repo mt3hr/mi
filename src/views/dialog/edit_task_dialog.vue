@@ -142,7 +142,7 @@ function construct_task_info() {
     new_task_info.limit_info.task_id = task_id
     new_task_info.limit_info.updated_time = now
     if (has_limit.value) {
-        new_task_info.limit_info.limit = new Date(Date.parse(`${limit_date} ${limit_time}:00`))
+        new_task_info.limit_info.limit = new Date(Date.parse(`${limit_date.value} ${limit_time.value}:00`))
     } else {
         new_task_info.limit_info.limit = null
     }
