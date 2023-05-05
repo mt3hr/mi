@@ -6,7 +6,6 @@ import (
 	"embed"
 	"fmt"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -79,6 +78,7 @@ func (m *miRepSQLiteImpl) SearchTasks(ctx context.Context, word string, query *S
 		}
 	}
 
+	/* 外でやるのでけします
 	switch query.SortType {
 	case CreatedTimeDesc:
 		sort.Slice(matchTasks, func(i int, j int) bool {
@@ -100,6 +100,7 @@ func (m *miRepSQLiteImpl) SearchTasks(ctx context.Context, word string, query *S
 			return limitI.After(limitJ)
 		})
 	}
+	*/
 
 	return matchTasks, nil
 }
@@ -607,6 +608,7 @@ func (m *miRepSQLiteImpl) GetTasksAtBoard(ctx context.Context, query *SearchTask
 		}
 	}
 
+	/* 外でやるのでけします
 	switch query.SortType {
 	case CreatedTimeDesc:
 		sort.Slice(matchTasks, func(i int, j int) bool {
@@ -628,8 +630,9 @@ func (m *miRepSQLiteImpl) GetTasksAtBoard(ctx context.Context, query *SearchTask
 			return limitI.After(limitJ)
 		})
 	}
+	*/
 
-	return nil, nil
+	return matchTasks, nil
 }
 
 func (m *miRepSQLiteImpl) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error) {

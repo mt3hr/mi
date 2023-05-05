@@ -1097,6 +1097,36 @@ func launchServer() error {
 			boardsTaskInfos = append(boardsTaskInfos, taskInfo)
 		}
 
+		switch request.Query.SortType {
+		case mi.CreatedTimeDesc:
+			sort.Slice(boardsTaskInfos, func(i int, j int) bool {
+				return boardsTaskInfos[i].Task.CreatedTime.After(boardsTaskInfos[j].Task.CreatedTime)
+			})
+		case mi.LimitTimeAsc:
+			hasLimitTaskInfos := []*mi.TaskInfo{}
+			noLimitTaskInfos := []*mi.TaskInfo{}
+
+			for _, taskInfo := range boardsTaskInfos {
+				if taskInfo.LimitInfo.Limit == nil {
+					noLimitTaskInfos = append(noLimitTaskInfos, taskInfo)
+				} else {
+					hasLimitTaskInfos = append(hasLimitTaskInfos, taskInfo)
+				}
+			}
+
+			sort.Slice(hasLimitTaskInfos, func(i int, j int) bool {
+				limitI := *hasLimitTaskInfos[i].LimitInfo.Limit
+				limitJ := *hasLimitTaskInfos[j].LimitInfo.Limit
+				return limitI.After(limitJ)
+			})
+
+			sort.Slice(noLimitTaskInfos, func(i int, j int) bool {
+				return noLimitTaskInfos[i].Task.CreatedTime.After(noLimitTaskInfos[j].Task.CreatedTime)
+			})
+
+			boardsTaskInfos = append(hasLimitTaskInfos, noLimitTaskInfos...)
+		}
+
 		response.BoardsTasks = boardsTaskInfos
 	}).Methods(get_tasks_from_board_method)
 

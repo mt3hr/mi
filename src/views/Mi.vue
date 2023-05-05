@@ -232,7 +232,7 @@ function copied_task_id(task_info: TaskInfo) {
 function added_tag() {
     detail_task_ref.value?.update_tags()
     detail_task_ref.value?.update_texts()
-    //TODO tagstruct更新
+    sidebar_ref.value?.update_tag_struct_promise()
 }
 function added_text() {
     detail_task_ref.value?.update_tags()
