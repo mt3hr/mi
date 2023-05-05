@@ -1,16 +1,18 @@
 <template>
-    <v-card @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task" class="pa-0 ma-0" draggable="true"
-        @dragstart="dragstart">
-        <table>
+    <v-card @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task" class="board_task_card pa-0 ma-0"
+        draggable="true" @dragstart="dragstart">
+        <table class="task_title_line_table">
             <tr>
-                <td>
+                <td align="left" class="task_checkbox_td">
                     <v-checkbox v-model="check" class="pa-0 ma-0" />
                 </td>
-                <td class="pa-0 ma-0">
-                    {{ title }}
+                <td class="task_title_td pa-0 ma-0" align="left">
+                    <p>{{ title }}</p>
                 </td>
-                <td v-if="limit">
-                    <p>期限: {{ limit.toLocaleString() }}</p>
+                <td class="limit_td" align="right">
+                    <small>
+                        <p v-if="limit">期限: {{ limit.toLocaleString() }}</p>
+                    </small>
                 </td>
             </tr>
         </table>
@@ -122,5 +124,15 @@ function dragstart(e: DragEvent) {
     height: 0 !important;
     max-height: 0 !important;
     min-height: 0 !important;
+}
+.task_checkbox_td {
+    width: 40px;
+    max-width: 40px;
+    min-width: 40px;
+}
+.task_title_td {
+    width: 190px;
+    max-width: 190px;
+    min-width: 190px;
 }
 </style>

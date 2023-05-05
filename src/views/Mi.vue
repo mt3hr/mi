@@ -335,4 +335,9 @@ function update_board_struct() {
 .html {
     overflow-y: hidden;
 }
+.board .task_title_line_table {
+    width: 370px;
+    min-width: 370px;
+    max-width: 370px;
+}
 </style>
