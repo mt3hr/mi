@@ -173,6 +173,8 @@ var (
 					AppName:            "mi",
 					VersionAstilectron: "0.51.0",
 					VersionElectron:    "22.0.0",
+					AppIconDefaultPath: "C:/Users/yamat/Git/mi/public/favicon.png",
+					AppIconDarwinPath:  "C:/Users/yamat/Git/mi/public/favicon.ico",
 				})
 				if err != nil {
 					fmt.Println("Electronが動かない環境であるかもしれません。その場合miは動きませんので変わりにmi serverを起動し、ブラウザからのアクセスを試みてください。")
