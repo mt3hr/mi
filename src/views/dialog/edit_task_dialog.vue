@@ -64,7 +64,7 @@ const task_title: Ref<string> = ref(props.task_info.task_title_info.title)
 const board_name: Ref<string> = ref(props.task_info.board_info.board_name)
 const is_show: Ref<boolean> = ref(false)
 const has_limit: Ref<boolean> = ref(!(!props.task_info.limit_info.limit))
-const limit_date: Ref<string> = ref(has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${props.task_info.limit_info.limit!.getMonth().toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
+const limit_date: Ref<string> = ref(has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${(props.task_info.limit_info.limit!.getMonth() + 1).toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
 const limit_time: Ref<string> = ref(has_limit.value ? `${props.task_info.limit_info.limit!.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getSeconds().toString().padStart(2, '0')}` : "00:00:00")
 const input_new_board_name_dialog_ref = ref<InstanceType<typeof input_new_board_name_dialog> | null>(null);
 
@@ -104,7 +104,6 @@ function submit() {
                 return
             }
             emit_updated_task(props.task_info, request.task_info)
-            clear_fields()
             close_dialog()
         })
 }
@@ -112,15 +111,9 @@ function show() {
     task_title.value = props.task_info.task_title_info.title
     board_name.value = props.task_info.board_info.board_name
     has_limit.value = !(!props.task_info.limit_info.limit)
-    limit_date.value = has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${props.task_info.limit_info.limit!.getMonth().toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    limit_date.value = has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${(props.task_info.limit_info.limit!.getMonth() + 1).toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
     limit_time.value = has_limit.value ? `${props.task_info.limit_info.limit!.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getSeconds().toString().padStart(2, '0')}` : "00:00:00"
     update_board_names().then(() => is_show.value = true)
-}
-function clear_fields() {
-    task_title.value = ""
-    has_limit.value = false
-    limit_date.value = has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${props.task_info.limit_info.limit!.getMonth().toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
-    limit_time.value = has_limit.value ? `${props.task_info.limit_info.limit!.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getSeconds().toString().padStart(2, '0')}` : `00:00:00`
 }
 function show_input_new_board_name_dialog() {
     input_new_board_name_dialog_ref.value?.show()

@@ -64,7 +64,7 @@ const task_title: Ref<string> = ref("")
 const board_name: Ref<string> = ref(props.option!.default_board_name)
 const is_show: Ref<boolean> = ref(false)
 const has_limit: Ref<boolean> = ref(false)
-const limit_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
+const limit_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
 const limit_time: Ref<string> = ref(`00:00:00`)
 
 const input_new_board_name_dialog_ref = ref<InstanceType<typeof input_new_board_name_dialog> | null>(null);
@@ -122,7 +122,7 @@ function clear_fields() {
     const now = new Date(Date.now())
     task_title.value = ""
     has_limit.value = false
-    limit_date.value = `${now.getFullYear().toString().padStart(4, '0')}-${now.getMonth().toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    limit_date.value = `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
     limit_time.value = `00:00:00`
 }
 function show_input_new_board_name_dialog() {
