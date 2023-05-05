@@ -272,6 +272,7 @@ function deleted_task(task_info: TaskInfo) {
 function deleted_tag() {
     detail_task_ref.value?.update_tags()
     detail_task_ref.value?.update_texts()
+    sidebar_ref.value?.update_tag_struct_promise()
     write_message("タグを削除しました")
 }
 function deleted_text() {
