@@ -11,6 +11,10 @@ import (
 
 type MiReps []MiRep
 
+func (m MiReps) UpdateCache(ctx context.Context) error {
+	return
+}
+
 func (m MiReps) SearchTasks(ctx context.Context, word string, query *SearchTaskQuery) ([]*Task, error) {
 	taskMap := map[string]*Task{}
 	for _, miRep := range m {
