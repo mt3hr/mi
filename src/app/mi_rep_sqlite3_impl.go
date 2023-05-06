@@ -729,7 +729,7 @@ func (m *miRepSQLiteImpl) GetPath(ctx context.Context, id string) (string, error
 	return m.filename, nil
 }
 
-func (m *miRepSQLiteImpl) Delete(ctx context.Context, id string) error {
+func (m *miRepSQLiteImpl) Delete(id string) error {
 	// タスクだった場合、関連情報もDBから消したほうがよくない？と思ったけど別DBにある可能性があるので消さなくていいか
 	// いやそんなことないか、RepsでFor回されたときに消せるわ
 	//TODO あでも接続されていないDBがあったときめんどいな、どうしよう

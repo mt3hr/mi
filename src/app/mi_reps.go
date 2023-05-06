@@ -352,9 +352,9 @@ func (m MiReps) GetPath(ctx context.Context, id string) (string, error) {
 	return "Mi", nil
 }
 
-func (m MiReps) Delete(ctx context.Context, id string) error {
+func (m MiReps) Delete(id string) error {
 	for _, miRep := range m {
-		miRep.Delete(ctx, id)
+		miRep.Delete(id)
 	}
 	return nil
 }

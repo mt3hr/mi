@@ -33,7 +33,7 @@ type MiRep interface {
 	GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error)
 	GetContentHTML(ctx context.Context, id string) (string, error)
 	GetPath(ctx context.Context, id string) (string, error)
-	Delete(ctx context.Context, id string) error
+	Delete(id string) error
 	Close() error
 	Path() string
 	RepName() string

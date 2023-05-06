@@ -1002,7 +1002,7 @@ func launchServer() error {
 		if err != nil {
 			panic(err)
 		}
-		err = repositories.MiReps[0].Delete(r.Context(), request.TaskID)
+		err = repositories.MiReps[0].Delete(request.TaskID)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスクの削除に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)

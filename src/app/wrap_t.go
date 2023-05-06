@@ -100,7 +100,7 @@ func (m *miRepT) GetPath(ctx context.Context, id string) (string, error) {
 }
 
 // このRepからKyouを削除する
-func (m *miRepT) Delete(ctx context.Context, id string) error {
+func (m *miRepT) Delete(id string) error {
 	return m.deleteTagReps.Delete(id)
 }
 
