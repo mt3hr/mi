@@ -131,6 +131,10 @@ var (
 	sqlDelete            string
 )
 
+func init() {
+	Prepare()
+}
+
 func Prepare() {
 	sqlCreateTablesB, err := EmbedDir.ReadFile("mi/mi/embed/sql/CreateTables.sql")
 	if err != nil {
@@ -245,6 +249,9 @@ func (m *miRepSQLiteImpl) GetAllTasks(ctx context.Context) ([]*Task, error) {
 			task := &Task{}
 			createdTimeStr := ""
 			err := rows.Scan(&task.TaskID, &createdTimeStr)
+			if err != nil {
+				return nil, err
+			}
 
 			task.CreatedTime, err = time.Parse(TimeLayout, createdTimeStr)
 			if err != nil {
