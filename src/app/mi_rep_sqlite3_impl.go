@@ -707,25 +707,29 @@ func (m *miRepSQLiteImpl) GetContentHTML(ctx context.Context, id string) (string
 	tasks, _ := m.GetAllTasks(ctx)
 	if tasks != nil {
 		for _, task := range tasks {
-			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
-			if err != nil {
-				return "", err
+			if task.TaskID == id {
+				taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+				if err != nil {
+					return "", err
+				}
+				return `<p>タスク作成:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
 			}
-			return `<p>タスク作成: ` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
 		}
 	}
 
 	checkStateInfos, _ := m.getAllCheckStateInfos(ctx)
 	if checkStateInfos != nil {
 		for _, checkStateInfo := range checkStateInfos {
-			taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
-			if err != nil {
-				return "", err
-			}
-			if taskInfo.CheckStateInfo.IsChecked {
-				return `<p>☑` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
-			} else {
-				return `<p>□` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+			if checkStateInfo.CheckStateID == id {
+				taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
+				if err != nil {
+					return "", err
+				}
+				if taskInfo.CheckStateInfo.IsChecked {
+					return `<p>タスクチェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+				} else {
+					return `<p>タスク未チェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+				}
 			}
 		}
 	}
