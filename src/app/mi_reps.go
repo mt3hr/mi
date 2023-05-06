@@ -389,7 +389,3 @@ func (m MiReps) Search(ctx context.Context, word string) ([]*kyou.Kyou, error) {
 	}
 	return kyous, nil
 }
-
-func (m MiReps) UpdateCache() error {
-	return nil
-}
