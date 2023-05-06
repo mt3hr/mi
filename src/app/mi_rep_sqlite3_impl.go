@@ -783,7 +783,7 @@ func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou
 			if err != nil {
 				return nil, err
 			}
-			if strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), word) {
+			if strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), word) || word == "" {
 				kyous = append(kyous, &kyou.Kyou{
 					ID:          taskInfo.Task.TaskID,
 					Time:        taskInfo.Task.CreatedTime,
