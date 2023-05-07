@@ -9,17 +9,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/asticode/go-astikit"
-	"github.com/asticode/go-astilectron"
 	"github.com/google/uuid"
 	"github.com/mitchellh/go-homedir"
 	mi "github.com/mt3hr/mi/src/app"
@@ -69,185 +64,28 @@ const get_tag_names_method = "post"
 const get_board_names_method = "post"
 const get_application_config_method = "post"
 
-func Execute() {
-	if err := cmd.Execute(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func init() {
-	cobra.MousetrapHelpText = "" // Windowsでマウスから起動しても怒られないようにする
-	cmd.PersistentFlags().StringVarP(&configfile, "config_file", "c", "", "使用するコンフィグファイル")
-	cmd.AddCommand(serverCmd)
-}
-
 var (
 	htmlFS embed.FS = mi.EmbedDir
 
-	configfile   = ""        // 使用するコンフィグファイルのpath
-	config       = &Config{} // loadConfigで読み込まれたコンフィグ
-	repositories = &Repositories{}
-	serverCmd    = &cobra.Command{
-		Use:   "server",
-		Short: "サーバーのみをたてます",
-		Long:  "サーバーのみをたてます。GUIは起動しません",
-		Run: func(_ *cobra.Command, _ []string) {
-			err := loadRepositories()
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer repositories.Close()
-			interceptCh := make(chan os.Signal)
-			signal.Notify(interceptCh, os.Interrupt)
-			go func() {
-				<-interceptCh
-				repositories.Close()
-				os.Exit(0)
-			}()
-			repositories, err = wrapT(repositories)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			err = launchServer()
-			if err != nil {
-				log.Fatal(err)
-			}
-		},
-	}
-	cmd = &cobra.Command{
-		Use: "mi",
-		PersistentPreRun: func(_ *cobra.Command, _ []string) {
-			mi.Prepare()
-			err := loadConfig()
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = loadBoardStruct()
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = loadTagStruct()
-			if err != nil {
-				log.Fatal(err)
-			}
-			config.ApplicationConfig.HiddenTags = append(config.ApplicationConfig.HiddenTags, kyou.DeletedTagName)
-		},
-		Run: func(_ *cobra.Command, _ []string) {
-			func() {
-				err := loadRepositories()
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer repositories.Close()
-				interceptCh := make(chan os.Signal)
-				signal.Notify(interceptCh, os.Interrupt)
-				go func() {
-					<-interceptCh
-					repositories.Close()
-					os.Exit(0)
-				}()
-
-				repositories, err = wrapT(repositories)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				go func() {
-					err := launchServer()
-					if err != nil {
-						log.Fatal(err)
-					}
-				}()
-
-				address := ""
-				if config.ServerConfig.TLS.Enable {
-					address += "https://localhost"
-				} else {
-					address += "http://localhost"
-				}
-				address += config.ServerConfig.Address
-
-				// Initialize astilectron
-				a, err := astilectron.New(nil, astilectron.Options{
-					AppName:            "mi",
-					VersionAstilectron: "0.51.0",
-					VersionElectron:    "22.0.0",
-					AppIconDefaultPath: "C:/Users/yamat/Git/mi/public/favicon.png",
-					AppIconDarwinPath:  "C:/Users/yamat/Git/mi/public/favicon.ico",
-				})
-				if err != nil {
-					fmt.Println("Electronが動かない環境であるかもしれません。その場合miは動きませんので変わりにmi serverを起動し、ブラウザからのアクセスを試みてください。")
-					log.Fatal(err)
-				}
-				defer a.Close()
-
-				// Start astilectron
-				a.Start()
-
-				contextIsolation := false
-				// Create a new window
-				w, err := a.NewWindow(address, &astilectron.WindowOptions{
-					Height: astikit.IntPtr(1200),
-					Width:  astikit.IntPtr(1500),
-					WebPreferences: &astilectron.WebPreferences{
-						AllowRunningInsecureContent: &contextIsolation,
-					},
-				})
-				if err != nil {
-					err = fmt.Errorf("error at new window: %w", err)
-					log.Fatal(err)
-				}
-
-				openInDefaultBrowserMessagePrefix := "open_in_default_browser:"
-				w.OnMessage(func(m *astilectron.EventMessage) interface{} {
-					msg := ""
-					m.Unmarshal(&msg)
-
-					if strings.HasPrefix(msg, openInDefaultBrowserMessagePrefix) {
-						url := strings.TrimSpace(strings.TrimPrefix(msg, openInDefaultBrowserMessagePrefix))
-						openbrowser(url)
-						return nil
-					}
-					return nil
-				})
-				w.Create()
-				w.ExecuteJavaScript(`// aタグがクリックされた時にelectronで開かず、デフォルトのブラウザで開く
-document.addEventListener('click', (e) => {
-  for (let i = 0; i < e.path.length; i++) {
-    let element = e.path[i]
-	if (element.tagName === 'A') {
-      e.preventDefault()
-	  let aTag = element
-	  let href = aTag.href
-      astilectron.sendMessage('` + openInDefaultBrowserMessagePrefix + ` ' + href)
-	}
-  }
-})
-`)
-
-				// Blocking pattern
-				a.Wait()
-			}()
-			os.Exit(0)
-		},
-	}
+	ConfigFileName     = ""        // 使用するコンフィグファイルのpath
+	LoadedConfig       = &Config{} // loadConfigで読み込まれたコンフィグ
+	LoadedRepositories = &Repositories{}
 )
 
-func openbrowser(url string) error {
-	var err error
-
-	switch runtime.GOOS {
-	case "linux":
-		err = exec.Command("xdg-open", url).Start()
-	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
+func PersistentPreRun(_ *cobra.Command, _ []string) {
+	err := loadConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
-	return err
+	err = loadBoardStruct()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = loadTagStruct()
+	if err != nil {
+		log.Fatal(err)
+	}
+	LoadedConfig.ApplicationConfig.HiddenTags = append(LoadedConfig.ApplicationConfig.HiddenTags, kyou.DeletedTagName)
 }
 
 // Config .
@@ -288,10 +126,10 @@ type ApplicationConfig struct {
 }
 
 func getConfigFile() string {
-	return configfile
+	return ConfigFileName
 }
 func getConfig() *Config {
-	return config
+	return LoadedConfig
 }
 func getConfigName() string {
 	return "mi_config"
@@ -445,7 +283,7 @@ func loadBoardStruct() error {
 			}
 		}
 	}
-	config.ApplicationConfig.BoardStruct = MapSlice(boardStructMap)
+	LoadedConfig.ApplicationConfig.BoardStruct = MapSlice(boardStructMap)
 	return nil
 }
 
@@ -520,7 +358,7 @@ func loadTagStruct() error {
 			}
 		}
 	}
-	config.ApplicationConfig.TagStruct = MapSlice(tagStructMap)
+	LoadedConfig.ApplicationConfig.TagStruct = MapSlice(tagStructMap)
 	return nil
 }
 
@@ -701,25 +539,25 @@ func loadConfig() error {
 }
 
 // configの情報をもとにrepositoriesを読み込む
-func loadRepositories() error {
+func LoadRepositories() error {
 	r := &Repositories{}
 
-	if config.Repositories.MiRep == nil {
+	if LoadedConfig.Repositories.MiRep == nil {
 		err := fmt.Errorf("configファイルのRepositories.MiRepの項目が設定されていないかあるいは不正です")
 		return err
 	}
-	reps, err := LoadMiReps(config.Repositories.MiRep)
+	reps, err := LoadMiReps(LoadedConfig.Repositories.MiRep)
 	if err != nil {
 		err = fmt.Errorf("error at load rep: %w", err)
 		return err
 	}
 	r.MiRep = reps[0]
 
-	if config.Repositories.MiReps == nil {
+	if LoadedConfig.Repositories.MiReps == nil {
 		err := fmt.Errorf("configファイルのRepositories.MiRepsの項目が設定されていないかあるいは不正です")
 		return err
 	}
-	for _, repInfo := range config.Repositories.MiReps {
+	for _, repInfo := range LoadedConfig.Repositories.MiReps {
 		reps, err := LoadMiReps(repInfo)
 		if err != nil {
 			err = fmt.Errorf("error at load reps: %w", err)
@@ -728,11 +566,11 @@ func loadRepositories() error {
 		r.MiReps = append(r.MiReps, reps...)
 	}
 
-	if config.Repositories.TagReps == nil {
+	if LoadedConfig.Repositories.TagReps == nil {
 		err := fmt.Errorf("configファイルのRepositories.TagRepsの項目が設定されていないかあるいは不正です")
 		return err
 	}
-	for _, tagRepInfo := range config.Repositories.TagReps {
+	for _, tagRepInfo := range LoadedConfig.Repositories.TagReps {
 		tagReps, err := tag.LoadTagReps(tagRepInfo)
 		if err != nil {
 			err = fmt.Errorf("error at load tag reps type=%s file=%s: %w", tagRepInfo.Type, tagRepInfo.File, err)
@@ -741,11 +579,11 @@ func loadRepositories() error {
 		r.TagReps = append(r.TagReps, tagReps...)
 	}
 
-	if config.Repositories.TextReps == nil {
+	if LoadedConfig.Repositories.TextReps == nil {
 		err := fmt.Errorf("configファイルのRepositories.TextRepsの項目が設定されていないかあるいは不正です")
 		return err
 	}
-	for _, textRepInfo := range config.Repositories.TextReps {
+	for _, textRepInfo := range LoadedConfig.Repositories.TextReps {
 		textReps, err := text.LoadTextReps(textRepInfo)
 		if err != nil {
 			err = fmt.Errorf("error at load text reps type=%s file=%s: %w", textRepInfo.Type, textRepInfo.File, err)
@@ -754,11 +592,11 @@ func loadRepositories() error {
 		r.TextReps = append(r.TextReps, textReps...)
 	}
 
-	if config.Repositories.TagRep == nil {
+	if LoadedConfig.Repositories.TagRep == nil {
 		err := fmt.Errorf("configファイルのRepositories.TagRepの項目が設定されていないかあるいは不正です")
 		return err
 	}
-	writetoTagRep, err := tag.LoadTagReps(config.Repositories.TagRep)
+	writetoTagRep, err := tag.LoadTagReps(LoadedConfig.Repositories.TagRep)
 	if err != nil {
 		err = fmt.Errorf("error at load write to tag rep: %w", err)
 		return err
@@ -769,11 +607,11 @@ func loadRepositories() error {
 	}
 	r.TagRep = writetoTagRep[0]
 
-	if config.Repositories.TextRep == nil {
+	if LoadedConfig.Repositories.TextRep == nil {
 		err := fmt.Errorf("configファイルのRepositories.TextRepの項目が設定されていないかあるいは不正です")
 		return err
 	}
-	writetoTextRep, err := text.LoadTextReps(config.Repositories.TextRep)
+	writetoTextRep, err := text.LoadTextReps(LoadedConfig.Repositories.TextRep)
 	if err != nil {
 		err = fmt.Errorf("error at to load write to text rep: %w", err)
 		return err
@@ -786,11 +624,11 @@ func loadRepositories() error {
 
 	r.DeleteTagReps = tag.NewDeleteTagReps(r.TagRep, r.TagReps, time.Hour*24*365)
 
-	repositories = r
+	LoadedRepositories = r
 	return nil
 }
 
-func launchServer() error {
+func LaunchServer() error {
 	router := registrep.Router
 
 	router.HandleFunc(get_board_struct_address, func(w http.ResponseWriter, r *http.Request) {
@@ -810,7 +648,7 @@ func launchServer() error {
 		if err != nil {
 			panic(err)
 		}
-		response.BoardStruct = config.ApplicationConfig.BoardStruct
+		response.BoardStruct = LoadedConfig.ApplicationConfig.BoardStruct
 	}).Methods(get_board_struct_method)
 
 	router.HandleFunc(get_tag_struct_address, func(w http.ResponseWriter, r *http.Request) {
@@ -830,7 +668,7 @@ func launchServer() error {
 		if err != nil {
 			panic(err)
 		}
-		response.TagStruct = config.ApplicationConfig.TagStruct
+		response.TagStruct = LoadedConfig.ApplicationConfig.TagStruct
 	}).Methods(get_tag_struct_method)
 
 	router.HandleFunc(add_task_address, func(w http.ResponseWriter, r *http.Request) {
@@ -861,35 +699,35 @@ func launchServer() error {
 			return
 		}
 
-		err = repositories.MiRep.AddTask(request.TaskInfo.Task)
+		err = LoadedRepositories.MiRep.AddTask(request.TaskInfo.Task)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
 			response.Errors = append(response.Errors, "タスクの追加に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = repositories.MiRep.AddTaskTitleInfo(request.TaskInfo.TaskTitleInfo)
+		err = LoadedRepositories.MiRep.AddTaskTitleInfo(request.TaskInfo.TaskTitleInfo)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
 			response.Errors = append(response.Errors, "タイトル情報の追加に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = repositories.MiRep.AddCheckStateInfo(request.TaskInfo.CheckStateInfo)
+		err = LoadedRepositories.MiRep.AddCheckStateInfo(request.TaskInfo.CheckStateInfo)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
 			response.Errors = append(response.Errors, "チェック情報の追加に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = repositories.MiRep.AddLimitInfo(request.TaskInfo.LimitInfo)
+		err = LoadedRepositories.MiRep.AddLimitInfo(request.TaskInfo.LimitInfo)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
 			response.Errors = append(response.Errors, "期限情報の追加に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = repositories.MiRep.AddBoardInfo(request.TaskInfo.BoardInfo)
+		err = LoadedRepositories.MiRep.AddBoardInfo(request.TaskInfo.BoardInfo)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
 			response.Errors = append(response.Errors, "板情報の追加に失敗しました")
@@ -916,28 +754,28 @@ func launchServer() error {
 			panic(err)
 		}
 
-		currentTaskTitleInfo, err := repositories.MiReps.GetLatestTaskTitleInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
+		currentTaskTitleInfo, err := LoadedRepositories.MiReps.GetLatestTaskTitleInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 			response.Errors = append(response.Errors, "タスクのタイトル情報取得時にエラーが発生しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		currentCheckStateInfo, err := repositories.MiReps.GetLatestCheckStateInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
+		currentCheckStateInfo, err := LoadedRepositories.MiReps.GetLatestCheckStateInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 			response.Errors = append(response.Errors, "タスクのチェック情報取得時にエラーが発生しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		currentLimitInfo, err := repositories.MiReps.GetLatestLimitInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
+		currentLimitInfo, err := LoadedRepositories.MiReps.GetLatestLimitInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 			response.Errors = append(response.Errors, "タスクの期限情報取得時にエラーが発生しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		currentBoardInfo, err := repositories.MiReps.GetLatestBoardInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
+		currentBoardInfo, err := LoadedRepositories.MiReps.GetLatestBoardInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 			response.Errors = append(response.Errors, "タスクの板情報取得時にエラーが発生しました")
@@ -946,7 +784,7 @@ func launchServer() error {
 		}
 
 		if request.TaskInfo.TaskTitleInfo.Title != currentTaskTitleInfo.Title {
-			err := repositories.MiRep.AddTaskTitleInfo(request.TaskInfo.TaskTitleInfo)
+			err := LoadedRepositories.MiRep.AddTaskTitleInfo(request.TaskInfo.TaskTitleInfo)
 			if err != nil {
 				response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 				response.Errors = append(response.Errors, "タスクのタイトル情報更新時にエラーが発生しました")
@@ -955,7 +793,7 @@ func launchServer() error {
 			}
 		}
 		if request.TaskInfo.CheckStateInfo.IsChecked != currentCheckStateInfo.IsChecked {
-			err := repositories.MiRep.AddCheckStateInfo(request.TaskInfo.CheckStateInfo)
+			err := LoadedRepositories.MiRep.AddCheckStateInfo(request.TaskInfo.CheckStateInfo)
 			if err != nil {
 				response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 				response.Errors = append(response.Errors, "タスクのチェック情報更新時にエラーが発生しました")
@@ -966,7 +804,7 @@ func launchServer() error {
 		if (request.TaskInfo.LimitInfo.Limit != nil && currentLimitInfo.Limit == nil) ||
 			(request.TaskInfo.LimitInfo.Limit == nil && currentLimitInfo.Limit != nil) ||
 			(request.TaskInfo.LimitInfo.Limit != nil && currentLimitInfo.Limit != nil && !request.TaskInfo.LimitInfo.Limit.Equal(*currentLimitInfo.Limit)) {
-			err := repositories.MiRep.AddLimitInfo(request.TaskInfo.LimitInfo)
+			err := LoadedRepositories.MiRep.AddLimitInfo(request.TaskInfo.LimitInfo)
 			if err != nil {
 				response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 				response.Errors = append(response.Errors, "タスクの期限情報更新時にエラーが発生しました")
@@ -975,7 +813,7 @@ func launchServer() error {
 			}
 		}
 		if request.TaskInfo.BoardInfo.BoardName != currentBoardInfo.BoardName {
-			err := repositories.MiRep.AddBoardInfo(request.TaskInfo.BoardInfo)
+			err := LoadedRepositories.MiRep.AddBoardInfo(request.TaskInfo.BoardInfo)
 			if err != nil {
 				response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 				response.Errors = append(response.Errors, "タスクの板情報更新時にエラーが発生しました")
@@ -1004,7 +842,7 @@ func launchServer() error {
 		}
 
 		deleted := false
-		for _, taskRep := range repositories.MiReps {
+		for _, taskRep := range LoadedRepositories.MiReps {
 			err = taskRep.Delete(request.TaskID)
 			if err != nil {
 				response.Errors = append(response.Errors, "タスクの削除に失敗しました")
@@ -1022,7 +860,7 @@ func launchServer() error {
 			}
 		}
 
-		repositories.DeleteTagReps.UpdateCache(r.Context())
+		LoadedRepositories.DeleteTagReps.UpdateCache(r.Context())
 	}).Methods(delete_task_method)
 
 	router.HandleFunc(get_task_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1042,7 +880,7 @@ func launchServer() error {
 		if err != nil {
 			panic(err)
 		}
-		taskInfo, err := repositories.MiReps.GetTaskInfo(r.Context(), request.TaskID)
+		taskInfo, err := LoadedRepositories.MiReps.GetTaskInfo(r.Context(), request.TaskID)
 		if err != nil {
 			response.Errors = append(response.Errors, "タスク情報の取得に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1073,14 +911,14 @@ func launchServer() error {
 		if request.Query.Word != "" {
 			words, notWords := parseWords(request.Query.Word)
 
-			boardsTasksMap, err = filterWords(r.Context(), repositories.MiReps, repositories.TextReps, words, notWords, false, request.Query)
+			boardsTasksMap, err = filterWords(r.Context(), LoadedRepositories.MiReps, LoadedRepositories.TextReps, words, notWords, false, request.Query)
 			if err != nil {
 				response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		} else {
-			boatdsTasks, err := repositories.MiReps.GetTasksAtBoard(r.Context(), request.Query)
+			boatdsTasks, err := LoadedRepositories.MiReps.GetTasksAtBoard(r.Context(), request.Query)
 			if err != nil {
 				response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
 				w.WriteHeader(http.StatusInternalServerError)
@@ -1091,7 +929,7 @@ func launchServer() error {
 			}
 		}
 
-		boardsTasksMap, err = filterTags(r.Context(), boardsTasksMap, repositories.TagReps, request.Query.Tags, Or)
+		boardsTasksMap, err = filterTags(r.Context(), boardsTasksMap, LoadedRepositories.TagReps, request.Query.Tags, Or)
 		if err != nil {
 			response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1105,7 +943,7 @@ func launchServer() error {
 
 		boardsTaskInfos := []*mi.TaskInfo{}
 		for _, task := range boardsTasks {
-			taskInfo, err := repositories.MiReps.GetTaskInfo(r.Context(), task.TaskID)
+			taskInfo, err := LoadedRepositories.MiReps.GetTaskInfo(r.Context(), task.TaskID)
 			if err != nil {
 				response.Errors = append(response.Errors, "タスク情報の取得に失敗しました")
 				w.WriteHeader(http.StatusInternalServerError)
@@ -1172,7 +1010,7 @@ func launchServer() error {
 			Time:   time.Now(),
 		}
 
-		err = repositories.TagRep.AddTag(tagInfo)
+		err = LoadedRepositories.TagRep.AddTag(tagInfo)
 		if err != nil {
 			response.Errors = append(response.Errors, "タグの追加に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1205,7 +1043,7 @@ func launchServer() error {
 			Time:   time.Now(),
 		}
 
-		err = repositories.TextRep.AddText(textInfo)
+		err = LoadedRepositories.TextRep.AddText(textInfo)
 		if err != nil {
 			response.Errors = append(response.Errors, "テキストの追加に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1232,7 +1070,7 @@ func launchServer() error {
 		}
 
 		tags := map[string]*tag.Tag{}
-		for _, tagRep := range repositories.TagReps {
+		for _, tagRep := range LoadedRepositories.TagReps {
 			matchTags, err := tagRep.GetTagsByTarget(r.Context(), request.TaskID)
 			if err != nil {
 				response.Errors = append(response.Errors, "タグの取得に失敗しました")
@@ -1269,7 +1107,7 @@ func launchServer() error {
 		}
 
 		texts := map[string]*text.Text{}
-		for _, textRep := range repositories.TextReps {
+		for _, textRep := range LoadedRepositories.TextReps {
 			matchTexts, err := textRep.GetTextsByTarget(r.Context(), request.TaskID)
 			if err != nil {
 				response.Errors = append(response.Errors, "テキストの取得に失敗しました")
@@ -1307,7 +1145,7 @@ func launchServer() error {
 		}
 
 		deleted := false
-		for _, tagRep := range repositories.TagReps {
+		for _, tagRep := range LoadedRepositories.TagReps {
 			err = tagRep.Delete(request.TagID)
 			if err != nil {
 				response.Errors = append(response.Errors, "タグの削除に失敗しました")
@@ -1325,7 +1163,7 @@ func launchServer() error {
 			}
 		}
 
-		repositories.DeleteTagReps.UpdateCache(r.Context())
+		LoadedRepositories.DeleteTagReps.UpdateCache(r.Context())
 	}).Methods(delete_tag_method)
 
 	router.HandleFunc(delete_text_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1347,7 +1185,7 @@ func launchServer() error {
 		}
 
 		deleted := false
-		for _, textRep := range repositories.TextReps {
+		for _, textRep := range LoadedRepositories.TextReps {
 			err = textRep.Delete(request.TextID)
 			if err != nil {
 				response.Errors = append(response.Errors, "テキストの削除に失敗しました")
@@ -1365,7 +1203,7 @@ func launchServer() error {
 			}
 		}
 
-		repositories.DeleteTagReps.UpdateCache(r.Context())
+		LoadedRepositories.DeleteTagReps.UpdateCache(r.Context())
 	}).Methods(delete_text_method)
 
 	router.HandleFunc(get_tag_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1386,7 +1224,7 @@ func launchServer() error {
 			panic(err)
 		}
 
-		tag, err := repositories.TagRep.GetTagByID(r.Context(), request.TagID)
+		tag, err := LoadedRepositories.TagRep.GetTagByID(r.Context(), request.TagID)
 		if err != nil {
 			response.Errors = append(response.Errors, "タグの取得に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1413,7 +1251,7 @@ func launchServer() error {
 			panic(err)
 		}
 
-		text, err := repositories.TextRep.GetTextByID(r.Context(), request.TextID)
+		text, err := LoadedRepositories.TextRep.GetTextByID(r.Context(), request.TextID)
 		if err != nil {
 			response.Errors = append(response.Errors, "テキストの取得に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1441,7 +1279,7 @@ func launchServer() error {
 		}
 
 		tagNames := map[string]interface{}{}
-		for _, tagRep := range repositories.TagReps {
+		for _, tagRep := range LoadedRepositories.TagReps {
 			tags, err := tagRep.GetAllTags(r.Context())
 			if err != nil {
 				response.Errors = append(response.Errors, "タグ一覧の取得に失敗しました")
@@ -1483,7 +1321,7 @@ func launchServer() error {
 		}
 
 		boardNames := map[string]interface{}{}
-		for _, miRep := range repositories.MiReps {
+		for _, miRep := range LoadedRepositories.MiReps {
 			tasks, err := miRep.GetAllTasks(r.Context())
 			if err != nil {
 				response.Errors = append(response.Errors, "板一覧の取得に失敗しました")
@@ -1529,7 +1367,7 @@ func launchServer() error {
 			panic(err)
 		}
 
-		response.ApplicationConfig = config.ApplicationConfig
+		response.ApplicationConfig = LoadedConfig.ApplicationConfig
 	}).Methods(get_application_config_method)
 
 	html, err := fs.Sub(htmlFS, "mi/mi/embed/html")
@@ -1539,7 +1377,7 @@ func launchServer() error {
 	router.PathPrefix("/").Handler(http.FileServer(http.FS(html)))
 
 	var handler http.Handler = router
-	if config.ServerConfig.LocalOnly {
+	if LoadedConfig.ServerConfig.LocalOnly {
 		h := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			spl := strings.Split(r.RemoteAddr, ":")
@@ -1559,30 +1397,24 @@ func launchServer() error {
 		})
 	}
 
-	if config.ServerConfig.TLS.Enable {
+	if LoadedConfig.ServerConfig.TLS.Enable {
 		err = http.ListenAndServeTLS(
-			config.ServerConfig.Address,
-			os.ExpandEnv(config.ServerConfig.TLS.CertFile),
-			os.ExpandEnv(config.ServerConfig.TLS.KeyFile),
+			LoadedConfig.ServerConfig.Address,
+			os.ExpandEnv(LoadedConfig.ServerConfig.TLS.CertFile),
+			os.ExpandEnv(LoadedConfig.ServerConfig.TLS.KeyFile),
 			handler)
 		if err != nil {
 			err = fmt.Errorf("failed to launch server: %w", err)
 			return err
 		}
 	} else {
-		err = http.ListenAndServe(config.ServerConfig.Address, handler)
+		err = http.ListenAndServe(LoadedConfig.ServerConfig.Address, handler)
 		if err != nil {
 			err = fmt.Errorf("failed to launch server: %w", err)
 			return err
 		}
 	}
 	return nil
-}
-
-func sortKyousByTime(kyous []*kyou.Kyou) {
-	sort.Slice(kyous, func(i, j int) bool {
-		return kyous[i].Time.After(kyous[j].Time)
-	})
 }
 
 func sortTagsByTime(tags []*tag.Tag) {
@@ -1716,7 +1548,7 @@ func (r *Repositories) Close() error {
 	return nil
 }
 
-func wrapT(repos *Repositories) (*Repositories, error) {
+func WrapT(repos *Repositories) (*Repositories, error) {
 	repos.MiReps = wrapMiRepsT(repos.MiReps, repos.DeleteTagReps)
 	repos.TagReps = wrapTagRepsT(repos.TagReps, repos.DeleteTagReps)
 	repos.TextReps = wrapTextRepsT(repos.TextReps, repos.DeleteTagReps)
@@ -1922,7 +1754,7 @@ func filterTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []t
 
 func filterHiddenTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []tag.TagRep, tags []string) (map[string]*mi.Task, error) {
 loop:
-	for _, hiddenTag := range config.ApplicationConfig.HiddenTags {
+	for _, hiddenTag := range LoadedConfig.ApplicationConfig.HiddenTags {
 		for _, tag := range tags {
 			if hiddenTag == tag {
 				continue loop
