@@ -3,14 +3,14 @@ miはTODOアプリケーションです。
 ![mi](https://raw.githubusercontent.com/mt3hr/mi/main/document/img/mi.png)  
 
 ## ダウンロード
-[mi](https://github.com/mt3hr/mi/releases/latest)  
-Windowsにてウイルスであると誤検知をされます。  
-誤検知回避対応予定は現在ありません。  
-（[参考](https://zenn.dev/akb428/articles/a7fdcd2614e366)）  
+[miダウンロード](https://github.com/mt3hr/mi/releases/latest)  
+Windowsにてウイルスであると検知されます。  
+おそらく誤検知ですが、不安な方はインストールしないでください。（[参考](https://zenn.dev/akb428/articles/a7fdcd2614e366)）  
+対応予定は現在ありません。  
 
 ## 実行
 「mi.exe」または「mi_server.exe」をダブルクリック  
-（mi.server.exeの場合は起動後[http://localhost:2734](http://localhost:2734)にアクセス）  
+（mi.server.exeの場合は起動後「[http://localhost:2734]」(http://localhost:2734)にアクセス）  
 
 <details>
 <summary>開発者向け</summary>
