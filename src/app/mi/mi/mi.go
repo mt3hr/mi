@@ -1002,12 +1002,27 @@ func launchServer() error {
 		if err != nil {
 			panic(err)
 		}
-		err = repositories.MiReps[0].Delete(request.TaskID)
-		if err != nil {
-			response.Errors = append(response.Errors, "タスクの削除に失敗しました")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+
+		deleted := false
+		for _, taskRep := range repositories.MiReps {
+			err = taskRep.Delete(request.TaskID)
+			if err != nil {
+				response.Errors = append(response.Errors, "タスクの削除に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			deleted = true
+			break
 		}
+		if !deleted {
+			if err != nil {
+				response.Errors = append(response.Errors, "タスクの削除に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
+		repositories.DeleteTagReps.UpdateCache(r.Context())
 	}).Methods(delete_task_method)
 
 	router.HandleFunc(get_task_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1218,7 +1233,6 @@ func launchServer() error {
 
 		tags := map[string]*tag.Tag{}
 		for _, tagRep := range repositories.TagReps {
-			repositories.DeleteTagReps.UpdateCache(r.Context())
 			matchTags, err := tagRep.GetTagsByTarget(r.Context(), request.TaskID)
 			if err != nil {
 				response.Errors = append(response.Errors, "タグの取得に失敗しました")
@@ -1256,7 +1270,6 @@ func launchServer() error {
 
 		texts := map[string]*text.Text{}
 		for _, textRep := range repositories.TextReps {
-			repositories.DeleteTagReps.UpdateCache(r.Context())
 			matchTexts, err := textRep.GetTextsByTarget(r.Context(), request.TaskID)
 			if err != nil {
 				response.Errors = append(response.Errors, "テキストの取得に失敗しました")
@@ -1293,12 +1306,26 @@ func launchServer() error {
 			panic(err)
 		}
 
-		err = repositories.TagReps[0].Delete(request.TagID)
-		if err != nil {
-			response.Errors = append(response.Errors, "タグの削除に失敗しました")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		deleted := false
+		for _, tagRep := range repositories.TagReps {
+			err = tagRep.Delete(request.TagID)
+			if err != nil {
+				response.Errors = append(response.Errors, "タグの削除に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			deleted = true
+			break
 		}
+		if !deleted {
+			if err != nil {
+				response.Errors = append(response.Errors, "タグの削除に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
+		repositories.DeleteTagReps.UpdateCache(r.Context())
 	}).Methods(delete_tag_method)
 
 	router.HandleFunc(delete_text_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1319,12 +1346,26 @@ func launchServer() error {
 			panic(err)
 		}
 
-		err = repositories.TextReps[0].Delete(request.TextID)
-		if err != nil {
-			response.Errors = append(response.Errors, "テキストの削除に失敗しました")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		deleted := false
+		for _, textRep := range repositories.TextReps {
+			err = textRep.Delete(request.TextID)
+			if err != nil {
+				response.Errors = append(response.Errors, "テキストの削除に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			deleted = true
+			break
 		}
+		if !deleted {
+			if err != nil {
+				response.Errors = append(response.Errors, "テキストの削除に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
+		repositories.DeleteTagReps.UpdateCache(r.Context())
 	}).Methods(delete_text_method)
 
 	router.HandleFunc(get_tag_address, func(w http.ResponseWriter, r *http.Request) {
