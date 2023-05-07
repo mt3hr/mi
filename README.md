@@ -1,11 +1,11 @@
 # TODOアプリケーション「mi」
-![mi](https://raw.githubusercontent.com/mt3hr/mi/main/document/img/mi.png)  
 miはTODOアプリケーションです。  
+![mi](https://raw.githubusercontent.com/mt3hr/mi/main/document/img/mi.png)  
 
 ## ダウンロード
 [mi](https://github.com/mt3hr/mi/releases/latest)  
 Windowsにてウイルスであると誤検知をされます。  
-ご検知回避対応予定は現在ありません。  
+誤検知回避対応予定は現在ありません。  
 （[参考](https://zenn.dev/akb428/articles/a7fdcd2614e366)）  
 
 ## 実行
