@@ -23,7 +23,7 @@ func (m MiReps) GetAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, e
 			return nil, err
 		}
 		for _, checkStateInfo := range matchTaskscheckStateInfos {
-			checkStateInfos[checkStateInfo.TaskID] = checkStateInfo
+			checkStateInfos[checkStateInfo.CheckStateID] = checkStateInfo
 		}
 	}
 	allCheckStateInfos := []*CheckStateInfo{}
@@ -97,10 +97,6 @@ func (m MiReps) GetLatestCheckStateInfoFromTaskID(ctx context.Context, taskID st
 		return checkStateInfo, nil
 	}
 
-	if len(checkStateInfos) > 0 {
-		return checkStateInfos[0], nil
-	}
-
 	return nil, fmt.Errorf("check state not found. taskID=%s", taskID)
 }
 
@@ -119,10 +115,6 @@ func (m MiReps) GetLatestTaskTitleInfoFromTaskID(ctx context.Context, taskID str
 	})
 	for _, taskTitleInfo := range taskTitleInfos {
 		return taskTitleInfo, nil
-	}
-
-	if len(taskTitleInfos) > 0 {
-		return taskTitleInfos[0], nil
 	}
 
 	return nil, fmt.Errorf("title not found. taskID=%s", taskID)
@@ -145,10 +137,6 @@ func (m MiReps) GetLatestLimitInfoFromTaskID(ctx context.Context, taskID string)
 		return limitInfo, nil
 	}
 
-	if len(limitInfos) > 0 {
-		return limitInfos[0], nil
-	}
-
 	return nil, fmt.Errorf("limit not found. taskID=%s", taskID)
 }
 
@@ -167,10 +155,6 @@ func (m MiReps) GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string)
 	})
 	for _, boardInfo := range boardInfos {
 		return boardInfo, nil
-	}
-
-	if len(boardInfos) > 0 {
-		return boardInfos[0], nil
 	}
 
 	return nil, fmt.Errorf("board not found. taskID=%s", taskID)
@@ -377,6 +361,9 @@ func (m MiReps) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error) {
 
 func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
 	tasks, _ := m.GetAllTasks(ctx)
+	if err != nil {
+		return "", err
+	}
 	if tasks != nil {
 		for _, task := range tasks {
 			if task.TaskID == id {
@@ -389,7 +376,11 @@ func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
 		}
 	}
 
-	checkStateInfos, _ := m.GetAllCheckStateInfos(ctx)
+	checkStateInfos, err := m.GetAllCheckStateInfos(ctx)
+	if err != nil {
+		return "", err
+	}
+
 	if checkStateInfos != nil {
 		for _, checkStateInfo := range checkStateInfos {
 			if checkStateInfo.CheckStateID == id {
