@@ -97,6 +97,10 @@ func (m MiReps) GetLatestCheckStateInfoFromTaskID(ctx context.Context, taskID st
 		return checkStateInfo, nil
 	}
 
+	if len(checkStateInfos) > 0 {
+		return checkStateInfos[0], nil
+	}
+
 	return nil, fmt.Errorf("check state not found. taskID=%s", taskID)
 }
 
@@ -115,6 +119,10 @@ func (m MiReps) GetLatestTaskTitleInfoFromTaskID(ctx context.Context, taskID str
 	})
 	for _, taskTitleInfo := range taskTitleInfos {
 		return taskTitleInfo, nil
+	}
+
+	if len(taskTitleInfos) > 0 {
+		return taskTitleInfos[0], nil
 	}
 
 	return nil, fmt.Errorf("title not found. taskID=%s", taskID)
@@ -137,6 +145,10 @@ func (m MiReps) GetLatestLimitInfoFromTaskID(ctx context.Context, taskID string)
 		return limitInfo, nil
 	}
 
+	if len(limitInfos) > 0 {
+		return limitInfos[0], nil
+	}
+
 	return nil, fmt.Errorf("limit not found. taskID=%s", taskID)
 }
 
@@ -155,6 +167,10 @@ func (m MiReps) GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string)
 	})
 	for _, boardInfo := range boardInfos {
 		return boardInfo, nil
+	}
+
+	if len(boardInfos) > 0 {
+		return boardInfos[0], nil
 	}
 
 	return nil, fmt.Errorf("board not found. taskID=%s", taskID)
@@ -389,8 +405,6 @@ func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("not found kyou %s", id)
-
 	return "", fmt.Errorf("not found kyou id=%s", id)
 }
 
