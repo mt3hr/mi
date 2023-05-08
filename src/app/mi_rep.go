@@ -10,6 +10,7 @@ import (
 type MiRep interface {
 	GetAllTasks(ctx context.Context) ([]*Task, error)
 	GetTask(ctx context.Context, taskID string) (*Task, error)
+	GetAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, error)
 
 	GetLatestCheckStateInfoFromTaskID(ctx context.Context, taskID string) (*CheckStateInfo, error)
 	GetLatestTaskTitleInfoFromTaskID(ctx context.Context, taskID string) (*TaskTitleInfo, error)

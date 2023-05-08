@@ -688,7 +688,7 @@ func (m *miRepSQLiteImpl) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error)
 		})
 	}
 
-	checkStateInfos, err := m.getAllCheckStateInfos(ctx)
+	checkStateInfos, err := m.GetAllCheckStateInfos(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -717,7 +717,7 @@ func (m *miRepSQLiteImpl) GetContentHTML(ctx context.Context, id string) (string
 		}
 	}
 
-	checkStateInfos, _ := m.getAllCheckStateInfos(ctx)
+	checkStateInfos, _ := m.GetAllCheckStateInfos(ctx)
 	if checkStateInfos != nil {
 		for _, checkStateInfo := range checkStateInfos {
 			if checkStateInfo.CheckStateID == id {
@@ -779,7 +779,7 @@ func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou
 	word = strings.ToLower(word)
 	kyous := []*kyou.Kyou{}
 
-	checkStateInfos, err := m.getAllCheckStateInfos(ctx)
+	checkStateInfos, err := m.GetAllCheckStateInfos(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -821,7 +821,7 @@ func (m *miRepSQLiteImpl) UpdateCache(ctx context.Context) error {
 	return nil
 }
 
-func (m *miRepSQLiteImpl) getAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, error) {
+func (m *miRepSQLiteImpl) GetAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, error) {
 	checkStateInfos := []*CheckStateInfo{}
 	statement := sqlGetAllCheckStateInfos
 	rows, err := m.db.QueryContext(ctx, statement)

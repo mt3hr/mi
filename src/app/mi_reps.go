@@ -15,6 +15,24 @@ func (m MiReps) UpdateCache(ctx context.Context) error {
 	return nil
 }
 
+func (m MiReps) GetAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, error) {
+	checkStateInfos := map[string]*CheckStateInfo{}
+	for _, miRep := range m {
+		matchTaskscheckStateInfos, err := miRep.GetAllCheckStateInfos(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, checkStateInfo := range matchTaskscheckStateInfos {
+			checkStateInfos[checkStateInfo.TaskID] = checkStateInfo
+		}
+	}
+	allCheckStateInfos := []*CheckStateInfo{}
+	for _, task := range checkStateInfos {
+		allCheckStateInfos = append(allCheckStateInfos, task)
+	}
+	return allCheckStateInfos, nil
+}
+
 func (m MiReps) SearchTasks(ctx context.Context, word string, query *SearchTaskQuery) ([]*Task, error) {
 	taskMap := map[string]*Task{}
 	for _, miRep := range m {
@@ -342,13 +360,37 @@ func (m MiReps) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error) {
 }
 
 func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
-	for _, miRep := range m {
-		contentHTML, err := miRep.GetContentHTML(ctx, id)
-		if err != nil {
-			continue
+	tasks, _ := m.GetAllTasks(ctx)
+	if tasks != nil {
+		for _, task := range tasks {
+			if task.TaskID == id {
+				taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+				if err != nil {
+					return "", err
+				}
+				return `<p>タスク作成:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+			}
 		}
-		return contentHTML, nil
 	}
+
+	checkStateInfos, _ := m.GetAllCheckStateInfos(ctx)
+	if checkStateInfos != nil {
+		for _, checkStateInfo := range checkStateInfos {
+			if checkStateInfo.CheckStateID == id {
+				taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
+				if err != nil {
+					return "", err
+				}
+				if taskInfo.CheckStateInfo.IsChecked {
+					return `<p>タスクチェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+				} else {
+					return `<p>タスク未チェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("not found kyou %s", id)
+
 	return "", fmt.Errorf("not found kyou id=%s", id)
 }
 
