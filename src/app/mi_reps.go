@@ -360,7 +360,7 @@ func (m MiReps) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error) {
 }
 
 func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
-	tasks, _ := m.GetAllTasks(ctx)
+	tasks, err := m.GetAllTasks(ctx)
 	if err != nil {
 		return "", err
 	}
