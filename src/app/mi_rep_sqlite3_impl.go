@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -769,10 +768,11 @@ func (m *miRepSQLiteImpl) Path() string {
 }
 
 func (m *miRepSQLiteImpl) RepName() string {
-	base := filepath.Base(m.Path())
-	ext := filepath.Ext(base)
-	withoutExt := base[:len(base)-len(ext)]
-	return withoutExt
+	return "Mi"
+	// base := filepath.Base(m.Path())
+	// ext := filepath.Ext(base)
+	// withoutExt := base[:len(base)-len(ext)]
+	// return withoutExt
 }
 
 func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou, error) {

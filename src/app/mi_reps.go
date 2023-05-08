@@ -364,15 +364,13 @@ func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if tasks != nil {
-		for _, task := range tasks {
-			if task.TaskID == id {
-				taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
-				if err != nil {
-					return "", err
-				}
-				return `<p>タスク作成:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+	for _, task := range tasks {
+		if task.TaskID == id {
+			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+			if err != nil {
+				return "", err
 			}
+			return `<p>タスク作成:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
 		}
 	}
 
@@ -381,18 +379,16 @@ func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
 		return "", err
 	}
 
-	if checkStateInfos != nil {
-		for _, checkStateInfo := range checkStateInfos {
-			if checkStateInfo.CheckStateID == id {
-				taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
-				if err != nil {
-					return "", err
-				}
-				if taskInfo.CheckStateInfo.IsChecked {
-					return `<p>タスクチェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
-				} else {
-					return `<p>タスク未チェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
-				}
+	for _, checkStateInfo := range checkStateInfos {
+		if checkStateInfo.CheckStateID == id {
+			taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
+			if err != nil {
+				return "", err
+			}
+			if taskInfo.CheckStateInfo.IsChecked {
+				return `<p>タスクチェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+			} else {
+				return `<p>タスク未チェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
 			}
 		}
 	}
