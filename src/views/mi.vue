@@ -19,10 +19,11 @@
                 <tr class="boards_wrap pa-0 ma-0">
                     <td class="board_wrap pa-0 ma-0" cols="auto" v-for="board_name in opened_board_names" :key="board_name">
                         <board class="pa-0 ma-0 board" :board_name="board_name" :selected_board_name="watching_board_name"
-                            :task_infos="task_infos_map[board_name]" @errors="write_messages"
-                            @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text"
-                            @updated_task="updated_task" @deleted_task="deleted_task" @clicked_task="set_watching_task"
-                            @close_board_request="close_board" @clicked_board="clicked_board_at_sidebar" />
+                            :task_infos="task_infos_map[board_name]" :loading="loading_map[board_name]"
+                            @errors="write_messages" @copied_task_id="copied_task_id" @added_tag="added_tag"
+                            @added_text="added_text" @updated_task="updated_task" @deleted_task="deleted_task"
+                            @clicked_task="set_watching_task" @close_board_request="close_board"
+                            @clicked_board="clicked_board_at_sidebar" />
                     </td>
                 </tr>
             </table>
@@ -80,9 +81,10 @@ const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(nul
 const detail_task_ref = ref<InstanceType<typeof detail_task> | null>(null);
 const query_map: Ref<any> = ref({})
 const task_infos_map: Ref<any> = ref({})
+const loading_map: Ref<any> = ref({})
 
 update_option()
-nextTick(() => update_option().then(() => open_board(option.value?.default_board_name)))
+    .then(() => open_board(option.value?.default_board_name))
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 function floatingActionButtonStyle() {
@@ -126,6 +128,7 @@ function update_board(board_name: string) {
     if (!query || board_name == "") {
         return
     }
+    loading_map.value[board_name] = true
     query!.board = board_name
     query_map.value[board_name] = query
     const request = new GetTasksFromBoardRequest()
@@ -134,23 +137,26 @@ function update_board(board_name: string) {
         .then(res => {
             if (res.errors && res.errors.length != 0) {
                 write_messages(res.errors)
+                loading_map.value[board_name] = false
                 return
             }
             task_infos_map.value[board_name] = res.boards_tasks
+            loading_map.value[board_name] = false
         })
 }
 function close_board(board_name: string) {
-    let opened_board_infos_index = -1
+    task_infos_map.value[board_name] = undefined
+    let opened_board_names_index = -1
     for (let i = 0; i < opened_board_names.value.length; i++) {
         if (opened_board_names.value[i] === board_name) {
-            opened_board_infos_index = i
+            opened_board_names_index = i
             break
         }
     }
-    if (opened_board_infos_index === -1) {
+    if (opened_board_names_index === -1) {
         return
     }
-    opened_board_names.value.splice(opened_board_infos_index, 1)
+    opened_board_names.value.splice(opened_board_names_index, 1)
     query_map.value[board_name] = undefined
     if (watching_board_name.value === board_name) {
         watching_board_name.value = null
@@ -335,6 +341,7 @@ function update_board_struct() {
 .html {
     overflow-y: hidden;
 }
+
 .board .task_title_line_table {
     width: 370px;
     min-width: 370px;

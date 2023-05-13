@@ -23,7 +23,12 @@ const emits = defineEmits<{
     (e: 'clicked_board', board: string): void
 }>()
 
-let boards: Ref<any> = ref({})
+watch(() => props.option, () => {
+    update_boards_promise()
+        .then(() => { return update_board_struct_promise() })
+})
+
+let boards: Ref<any> = ref([])
 let board_structure: Ref<any> = ref({})
 const board_struct_ref = ref<InstanceType<typeof board_struct> | null>(null);
 
@@ -31,11 +36,12 @@ defineExpose({
     update_boards_promise
 })
 
-nextTick(() => {
+watch(() => props.option, () => {
     update_boards_promise()
         .then(() => { return update_board_struct_promise() })
         .then(() => emits('updated_by_user'))
 })
+
 // board_structをkv_boardlist_boardsの取り扱える形に変換し、更新します。
 function update_board_struct_promise() {
     return new Promise(resolve => { return resolve(null) })
@@ -89,6 +95,8 @@ function update_board_struct_promise() {
                 board_struct_ = f({}, "")
             }
 
+
+            if (!boards.value) return
             boards.value.forEach((board: any) => {
                 let exist = false
                 for (let i = 0; i < structed_boards.length; i++) {

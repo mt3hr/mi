@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,8 +21,8 @@ import (
 	mi "github.com/mt3hr/mi/src/app"
 	"github.com/mt3hr/rykv/kyou"
 	"github.com/mt3hr/rykv/registrep"
-	tag "github.com/mt3hr/rykv/tag"
-	text "github.com/mt3hr/rykv/text"
+	"github.com/mt3hr/rykv/tag"
+	"github.com/mt3hr/rykv/text"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
@@ -1070,15 +1071,35 @@ func LaunchServer() error {
 		}
 
 		tags := map[string]*tag.Tag{}
+		wg := &sync.WaitGroup{}
+		ch := make(chan []*tag.Tag, len(LoadedRepositories.TagReps))
 		for _, tagRep := range LoadedRepositories.TagReps {
-			matchTags, err := tagRep.GetTagsByTarget(r.Context(), request.TaskID)
-			if err != nil {
-				response.Errors = append(response.Errors, "タグの取得に失敗しました")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			for _, matchTag := range matchTags {
-				tags[matchTag.ID] = matchTag
+			tagRep := tagRep
+			wg.Add(1)
+			go func(tagRep tag.TagRep) {
+				defer wg.Done()
+				matchTags, err := tagRep.GetTagsByTarget(r.Context(), request.TaskID)
+				if err != nil {
+					response.Errors = append(response.Errors, "タグの取得に失敗しました")
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				ch <- matchTags
+			}(tagRep)
+		}
+		wg.Wait()
+	loop:
+		for {
+			select {
+			case t := <-ch:
+				if t == nil {
+					continue loop
+				}
+				for _, tag := range t {
+					tags[tag.ID] = tag
+				}
+			default:
+				break loop
 			}
 		}
 		tagList := []*tag.Tag{}
@@ -1107,15 +1128,35 @@ func LaunchServer() error {
 		}
 
 		texts := map[string]*text.Text{}
+		wg := &sync.WaitGroup{}
+		ch := make(chan []*text.Text, len(LoadedRepositories.TextReps))
 		for _, textRep := range LoadedRepositories.TextReps {
-			matchTexts, err := textRep.GetTextsByTarget(r.Context(), request.TaskID)
-			if err != nil {
-				response.Errors = append(response.Errors, "テキストの取得に失敗しました")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			for _, matchText := range matchTexts {
-				texts[matchText.ID] = matchText
+			textRep := textRep
+			wg.Add(1)
+			go func(textRep text.TextRep) {
+				defer wg.Done()
+				matchTexts, err := textRep.GetTextsByTarget(r.Context(), request.TaskID)
+				if err != nil {
+					response.Errors = append(response.Errors, "テキストの取得に失敗しました")
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				ch <- matchTexts
+			}(textRep)
+		}
+		wg.Wait()
+	loop:
+		for {
+			select {
+			case t := <-ch:
+				if t == nil {
+					continue loop
+				}
+				for _, text := range t {
+					texts[text.ID] = text
+				}
+			default:
+				break loop
 			}
 		}
 		textList := []*text.Text{}
@@ -1224,13 +1265,36 @@ func LaunchServer() error {
 			panic(err)
 		}
 
-		tag, err := LoadedRepositories.TagRep.GetTagByID(r.Context(), request.TagID)
-		if err != nil {
-			response.Errors = append(response.Errors, "タグの取得に失敗しました")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		matchTag := &tag.Tag{}
+		wg := &sync.WaitGroup{}
+		ch := make(chan *tag.Tag, len(LoadedRepositories.TagReps))
+		defer close(ch)
+		for _, tagRep := range LoadedRepositories.TagReps {
+			tagRep := tagRep
+			wg.Add(1)
+			go func(tagRep tag.TagRep) {
+				defer wg.Done()
+				tag, err := tagRep.GetTagByID(r.Context(), request.TagID)
+				if err != nil {
+					return
+				}
+				ch <- tag
+			}(tagRep)
 		}
-		response.Tag = tag
+		wg.Wait()
+	loop:
+		for {
+			select {
+			case t := <-ch:
+				if t == nil {
+					continue loop
+				}
+				matchTag = t
+			default:
+				break loop
+			}
+		}
+		response.Tag = matchTag
 	}).Methods(get_tag_method)
 
 	router.HandleFunc(get_text_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1251,13 +1315,34 @@ func LaunchServer() error {
 			panic(err)
 		}
 
-		text, err := LoadedRepositories.TextRep.GetTextByID(r.Context(), request.TextID)
-		if err != nil {
-			response.Errors = append(response.Errors, "テキストの取得に失敗しました")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+		matchText := &text.Text{}
+		wg := &sync.WaitGroup{}
+		ch := make(chan *text.Text, len(LoadedRepositories.TextReps))
+		defer close(ch)
+		for _, textRep := range LoadedRepositories.TextReps {
+			textRep := textRep
+			wg.Add(1)
+			go func(textRep text.TextRep) {
+				defer wg.Done()
+				text, err := textRep.GetTextByID(r.Context(), request.TextID)
+				if err != nil {
+					return
+				}
+				ch <- text
+			}(textRep)
 		}
-		response.Text = text
+		wg.Wait()
+	loop:
+		for {
+			select {
+			case t := <-ch:
+				matchText = t
+			default:
+				break loop
+			}
+		}
+
+		response.Text = matchText
 	}).Methods(get_text_method)
 
 	router.HandleFunc(get_tag_names_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1278,19 +1363,39 @@ func LaunchServer() error {
 			panic(err)
 		}
 
+		tags := []string{}
 		tagNames := map[string]interface{}{}
+		wg := &sync.WaitGroup{}
+		ch := make(chan []*tag.Tag, len(LoadedRepositories.TagReps))
 		for _, tagRep := range LoadedRepositories.TagReps {
-			tags, err := tagRep.GetAllTags(r.Context())
-			if err != nil {
-				response.Errors = append(response.Errors, "タグ一覧の取得に失敗しました")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			for _, tag := range tags {
-				tagNames[tag.Tag] = struct{}{}
+			wg.Add(1)
+			go func(tagRep tag.TagRep) {
+				defer wg.Done()
+				loadedTags, err := tagRep.GetAllTags(r.Context())
+				if err != nil {
+					response.Errors = append(response.Errors, "タグ一覧の取得に失敗しました")
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				ch <- loadedTags
+			}(tagRep)
+		}
+		wg.Wait()
+	loop:
+		for {
+			select {
+			case t := <-ch:
+				if t == nil {
+					continue loop
+				}
+				for _, tag := range t {
+					tagNames[tag.Tag] = tag
+				}
+			default:
+				break loop
 			}
 		}
-		tags := []string{}
+
 		for tagName := range tagNames {
 			if tagName != kyou.DeletedTagName {
 				tags = append(tags, strings.TrimSpace(tagName))
@@ -1321,23 +1426,46 @@ func LaunchServer() error {
 		}
 
 		boardNames := map[string]interface{}{}
+		wg := &sync.WaitGroup{}
+		ch := make(chan []string, len(LoadedRepositories.MiReps))
 		for _, miRep := range LoadedRepositories.MiReps {
-			tasks, err := miRep.GetAllTasks(r.Context())
-			if err != nil {
-				response.Errors = append(response.Errors, "板一覧の取得に失敗しました")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			for _, task := range tasks {
-				boardInfo, err := miRep.GetLatestBoardInfoFromTaskID(r.Context(), task.TaskID)
+			wg.Add(1)
+			go func(miRep mi.MiRep) {
+				defer wg.Done()
+				repsBoardNames := []string{}
+				tasks, err := miRep.GetAllTasks(r.Context())
 				if err != nil {
 					response.Errors = append(response.Errors, "板一覧の取得に失敗しました")
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				boardNames[boardInfo.BoardName] = struct{}{}
+				for _, task := range tasks {
+					boardInfo, err := miRep.GetLatestBoardInfoFromTaskID(r.Context(), task.TaskID)
+					if err != nil {
+						response.Errors = append(response.Errors, "板一覧の取得に失敗しました")
+						w.WriteHeader(http.StatusInternalServerError)
+						return
+					}
+					repsBoardNames = append(repsBoardNames, boardInfo.BoardName)
+				}
+			}(miRep)
+		}
+		wg.Wait()
+	loop:
+		for {
+			select {
+			case repsBoardNames := <-ch:
+				if repsBoardNames == nil {
+					continue loop
+				}
+				for _, repsBoardName := range repsBoardNames {
+					boardNames[repsBoardName] = struct{}{}
+				}
+			default:
+				break loop
 			}
 		}
+
 		boardNamesList := []string{}
 		for boardName := range boardNames {
 			boardNamesList = append(boardNamesList, boardName)
@@ -1597,16 +1725,59 @@ func filterTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []t
 	// タグを持っていないidを取得する
 	noHaveTagTasks := map[string]*mi.Task{}
 	haveTagTasks := map[string]struct{}{}
+
+	existErr := false
+	var e error
+
+	wg := &sync.WaitGroup{}
+	tagsch := make(chan []*tag.Tag, len(tagReps))
+	errch := make(chan error, len(tagReps))
+	defer close(tagsch)
+	defer close(errch)
 	for _, tagrep := range tagReps {
-		allTags, err := tagrep.GetAllTags(ctx)
-		if err != nil {
-			err = fmt.Errorf("error at get all tags from tagrep %s: %w", tagrep.Path(), err)
-			return nil, err
-		}
-		for _, tag := range allTags {
-			haveTagTasks[tag.Target] = struct{}{}
+		wg.Add(1)
+		tagrep := tagrep
+		go func(tagrep tag.TagRep) {
+			defer wg.Done()
+			tags, err := tagrep.GetAllTags(ctx)
+			if err != nil {
+				err = fmt.Errorf("error at get all tags from tagrep %s: %w", tagrep.Path(), err)
+				errch <- err
+			}
+			tagsch <- tags
+		}(tagrep)
+	}
+	wg.Wait()
+
+errloop1:
+	for {
+		select {
+		case e := <-errch:
+			e = fmt.Errorf("error at filter tags: %w", e)
+			existErr = true
+		default:
+			break errloop1
 		}
 	}
+	if existErr {
+		return nil, e
+	}
+
+loop1:
+	for {
+		select {
+		case t := <-tagsch:
+			if t == nil {
+				continue loop1
+			}
+			for _, tag := range t {
+				haveTagTasks[tag.Target] = struct{}{}
+			}
+		default:
+			break loop1
+		}
+	}
+
 	for _, task := range matchTasks {
 		if _, exist := haveTagTasks[task.TaskID]; !exist {
 			noHaveTagTasks[task.TaskID] = task
@@ -1614,22 +1785,65 @@ func filterTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []t
 	}
 
 	if mode == Or {
+		wg := &sync.WaitGroup{}
+		tasksch := make(chan map[string]*mi.Task, len(tagReps))
+		errch := make(chan error, len(tagReps))
+		defer close(tasksch)
+		defer close(errch)
+
 		// tagがあり、or検索の場合は、タグにヒットしたやつすべて
 		temp := map[string]*mi.Task{}
 		for _, tagrep := range tagReps {
-			for _, tagname := range tags {
-				tags, err := tagrep.GetTagsByName(ctx, tagname)
-				if err != nil {
-					err = fmt.Errorf("error at get tag by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
-					return nil, err
-				}
-				for _, tag := range tags {
-					if task, exist := matchTasks[tag.Target]; exist {
-						temp[task.TaskID] = task
+			wg.Add(1)
+			tagrep := tagrep
+			go func(tagrep tag.TagRep) {
+				defer wg.Done()
+				t := map[string]*mi.Task{}
+				for _, tagname := range tags {
+					tags, err := tagrep.GetTagsByName(ctx, tagname)
+					if err != nil {
+						err = fmt.Errorf("error at get tag by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
+						errch <- err
+					}
+					for _, tag := range tags {
+						if task, exist := matchTasks[tag.Target]; exist {
+							t[task.TaskID] = task
+						}
 					}
 				}
+				tasksch <- t
+			}(tagrep)
+		}
+		wg.Wait()
+	errloop2:
+		for {
+			select {
+			case e := <-errch:
+				e = fmt.Errorf("error at filter tags: %w", e)
+				existErr = true
+			default:
+				break errloop2
 			}
 		}
+		if existErr {
+			return nil, e
+		}
+
+	loop2:
+		for {
+			select {
+			case tasks := <-tasksch:
+				if tasks == nil {
+					continue loop2
+				}
+				for _, task := range tasks {
+					temp[task.TaskID] = task
+				}
+			default:
+				break loop2
+			}
+		}
+
 		// notagが含まれたらタグを持っていないkyouを追加する
 		for _, tag := range tags {
 			if tag == NoTag {
@@ -1659,46 +1873,130 @@ func filterTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []t
 	for i, tagname := range tags {
 		switch i {
 		case 0:
+			wg := &sync.WaitGroup{}
+			tasksch := make(chan map[string]*mi.Task, len(tagReps))
+			errch := make(chan error, len(tagReps))
+			defer close(tasksch)
+			defer close(errch)
+
 			for _, tagrep := range tagReps {
-				tags, err := tagrep.GetTagsByName(ctx, tagname)
-				if err != nil {
-					err = fmt.Errorf("error at get tags by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
-					return nil, err
-				}
-				for _, tag := range tags {
-					if id, exist := matchTasks[tag.Target]; exist {
-						temp = append(temp, id)
+				wg.Add(1)
+				tagrep := tagrep
+				go func(tagrep tag.TagRep) {
+					defer wg.Done()
+					t := map[string]*mi.Task{}
+					tags, err := tagrep.GetTagsByName(ctx, tagname)
+					if err != nil {
+						err = fmt.Errorf("error at get tags by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
+						errch <- err
 					}
+					for _, tag := range tags {
+						if task, exist := matchTasks[tag.Target]; exist {
+							t[task.TaskID] = task
+						}
+					}
+					tasksch <- t
+				}(tagrep)
+			}
+			wg.Wait()
+		errloop3:
+			for {
+				select {
+				case e := <-errch:
+					e = fmt.Errorf("error at filter tags: %w", e)
+					existErr = true
+				default:
+					break errloop3
+				}
+			}
+			if existErr {
+				return nil, e
+			}
+
+		loop3:
+			for {
+				select {
+				case tasks := <-tasksch:
+					if tasks == nil {
+						continue loop3
+					}
+					for _, task := range tasks {
+						temp = append(temp, task)
+					}
+				default:
+					break loop3
 				}
 			}
 		default:
+			wg := &sync.WaitGroup{}
+			tasksch := make(chan []*mi.Task, len(tagReps))
+			errch := make(chan error, len(tagReps))
+			defer close(tasksch)
+			defer close(errch)
 			temppp := []*mi.Task{}
 			for _, tagrep := range tagReps {
-				tags, err := tagrep.GetTagsByName(ctx, tagname)
-				if err != nil {
-					err = fmt.Errorf("failed to get tag by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
-					return nil, err
-				}
-
-				tasks := []*mi.Task{}
-				for _, tag := range tags {
-					if id, exist := matchTasks[tag.Target]; exist {
-						tasks = append(tasks, id)
+				wg.Add(1)
+				tagrep := tagrep
+				go func(tagrep tag.TagRep) {
+					t := []*mi.Task{}
+					defer wg.Done()
+					tags, err := tagrep.GetTagsByName(ctx, tagname)
+					if err != nil {
+						err = fmt.Errorf("failed to get tag by name %s from tagrep %s: %w", tagname, tagrep.Path(), err)
+						errch <- err
 					}
-				}
 
-				for _, existTask := range temp {
-					exist := false
-					for _, task := range tasks {
-						if existTask.TaskID == task.TaskID {
-							exist = true
+					tasks := []*mi.Task{}
+					for _, tag := range tags {
+						if id, exist := matchTasks[tag.Target]; exist {
+							tasks = append(tasks, id)
 						}
 					}
-					if exist {
-						temppp = append(temppp, existTask)
+
+					for _, existTask := range temp {
+						exist := false
+						for _, task := range tasks {
+							if existTask.TaskID == task.TaskID {
+								exist = true
+							}
+						}
+						if exist {
+							t = append(t, existTask)
+						}
 					}
+					tasksch <- t
+				}(tagrep)
+			}
+			wg.Wait()
+		errloop4:
+			for {
+				select {
+				case e := <-errch:
+					e = fmt.Errorf("error at filter tags: %w", e)
+					existErr = true
+				default:
+					break errloop4
 				}
 			}
+			if existErr {
+				return nil, e
+			}
+
+		loop4:
+			for {
+				select {
+				case tasks := <-tasksch:
+					if tasks == nil {
+						continue loop4
+					}
+					for _, task := range tasks {
+						temppp = append(temp, task)
+					}
+				default:
+					break loop4
+				}
+			}
+
 			temp = temppp
 		}
 	}
@@ -1715,13 +2013,51 @@ func filterTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []t
 		return filterHiddenTags(ctx, matchTasks, tagReps, tags)
 	} else if mode == Only {
 		allTags := []*tag.Tag{}
+
+		wg := &sync.WaitGroup{}
+		tagsch := make(chan []*tag.Tag, len(tagReps))
+		errch := make(chan error, len(tagReps))
+		defer close(tagsch)
+		defer close(errch)
 		for _, tagrep := range tagReps {
-			tags, err := tagrep.GetAllTags(ctx)
-			if err != nil {
-				err = fmt.Errorf("error at get all tags from %s: %w", tagrep.Path(), err)
-				return nil, err
+			wg.Add(1)
+			tagrep := tagrep
+			go func(tagrep tag.TagRep) {
+				defer wg.Done()
+				tags, err := tagrep.GetAllTags(ctx)
+				if err != nil {
+					err = fmt.Errorf("error at get all tags from %s: %w", tagrep.Path(), err)
+					errch <- err
+				}
+				tagsch <- tags
+			}(tagrep)
+		}
+		wg.Wait()
+	errloop5:
+		for {
+			select {
+			case e := <-errch:
+				e = fmt.Errorf("error at filter tags: %w", e)
+				existErr = true
+			default:
+				break errloop5
 			}
-			allTags = append(allTags, tags...)
+		}
+		if existErr {
+			return nil, e
+		}
+
+	loop5:
+		for {
+			select {
+			case t := <-tagsch:
+				if t == nil {
+					continue loop5
+				}
+				allTags = append(allTags, t...)
+			default:
+				break loop5
+			}
 		}
 
 		// requestされたtagじゃないものがあったら除去する
@@ -1753,41 +2089,123 @@ func filterTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []t
 }
 
 func filterHiddenTags(ctx context.Context, matchTasks map[string]*mi.Task, tagReps []tag.TagRep, tags []string) (map[string]*mi.Task, error) {
-loop:
+	var e error
+	existErr := false
+loop1:
 	for _, hiddenTag := range LoadedConfig.ApplicationConfig.HiddenTags {
 		for _, tag := range tags {
 			if hiddenTag == tag {
-				continue loop
+				continue loop1
 			}
 		}
+		wg := &sync.WaitGroup{}
+		tagsch := make(chan []*tag.Tag, len(tagReps))
+		errch := make(chan error, len(tagReps))
+		defer close(tagsch)
+		defer close(errch)
 		for _, tagrep := range tagReps {
-			tags, err := tagrep.GetTagsByName(ctx, hiddenTag)
-			if err != nil {
-				err = fmt.Errorf("error at get tags by name from %s: %w", tagrep.Path(), err)
-				return nil, err
-			}
-			for _, tag := range tags {
-				if _, exist := matchTasks[tag.Target]; exist {
-					delete(matchTasks, tag.Target)
+			wg.Add(1)
+			tagrep := tagrep
+			go func(tagrep tag.TagRep) {
+				defer wg.Done()
+				tags, err := tagrep.GetTagsByName(ctx, hiddenTag)
+				if err != nil {
+					err = fmt.Errorf("error at get tags by name from %s: %w", tagrep.Path(), err)
+					errch <- err
 				}
+				tagsch <- tags
+			}(tagrep)
+		}
+		wg.Wait()
+	errloop:
+		for {
+			select {
+			case e := <-errch:
+				e = fmt.Errorf("error at filter deleted tags: %w", e)
+				existErr = true
+			default:
+				break errloop
+			}
+		}
+		if existErr {
+			return nil, e
+		}
+
+	loop2:
+		for {
+			select {
+			case t := <-tagsch:
+				if t == nil {
+					continue loop2
+				}
+				for _, tag := range t {
+					if _, exist := matchTasks[tag.Target]; exist {
+						delete(matchTasks, tag.Target)
+					}
+				}
+			default:
+				break loop2
 			}
 		}
 	}
+
 	return matchTasks, nil
 }
 
 func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string, notWords []string, and bool, query *mi.SearchTaskQuery) (map[string]*mi.Task, error) {
+	existErr := false
+	var e error
 	matchTasks := map[string]*mi.Task{}
 	// wordsがないときにはRep内のすべてのID
 	if len(words) == 0 {
 		allTasks := []*mi.Task{}
+
+		wg := &sync.WaitGroup{}
+		tasksch := make(chan []*mi.Task, len(reps))
+		errch := make(chan error, len(reps))
+		defer close(tasksch)
+		defer close(errch)
+
 		for _, rep := range reps {
-			tasks, err := rep.GetAllTasks(ctx)
-			if err != nil {
-				err = fmt.Errorf("error at get all tasks from %s: %w", rep.Path(), err)
-				return nil, err
+			wg.Add(1)
+			rep := rep
+			go func(rep mi.MiRep) {
+				defer wg.Done()
+				tasks, err := rep.GetAllTasks(ctx)
+				if err != nil {
+					err = fmt.Errorf("error at get all tasks from %s: %w", rep.Path(), err)
+					errch <- err
+				}
+				tasksch <- tasks
+			}(rep)
+		}
+		wg.Wait()
+
+	errloop:
+		for {
+			select {
+			case e := <-errch:
+				e = fmt.Errorf("error at filter tags: %w", e)
+				existErr = true
+			default:
+				break errloop
 			}
-			allTasks = append(allTasks, tasks...)
+		}
+		if existErr {
+			return nil, e
+		}
+
+	loop:
+		for {
+			select {
+			case tasks := <-tasksch:
+				if tasks == nil {
+					continue loop
+				}
+				allTasks = append(allTasks, tasks...)
+			default:
+				break loop
+			}
 		}
 
 		// 重複がないようにMapに詰める
@@ -1855,44 +2273,163 @@ func filterWords(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, w
 }
 
 func orSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string, query *mi.SearchTaskQuery) ([]*mi.Task, error) {
+	existErr := false
+	var e error
+
 	matchTasks := []*mi.Task{}
 	allTasks := []*mi.Task{}
+
+	wg := &sync.WaitGroup{}
+	tasksch := make(chan []*mi.Task, len(reps))
+	errch := make(chan error, len(reps))
+	taskscht := make(chan []*mi.Task, len(textReps))
+	errcht := make(chan error, len(reps))
+	defer close(tasksch)
+	defer close(errch)
+	defer close(taskscht)
+	defer close(errcht)
 	for _, rep := range reps {
-		tasks, err := rep.GetAllTasks(ctx)
-		if err != nil {
-			err = fmt.Errorf("error at get all tasks from %s: %w", rep.Path(), err)
-			return nil, err
-		}
-		allTasks = append(allTasks, tasks...)
+		wg.Add(1)
+		rep := rep
+		go func(rep mi.MiRep) {
+			defer wg.Done()
+			tasks, err := rep.GetAllTasks(ctx)
+			if err != nil {
+				err = fmt.Errorf("error at get all tasks from %s: %w", rep.Path(), err)
+				errch <- err
+			}
+			tasksch <- tasks
+		}(rep)
 	}
+	wg.Wait()
+
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			e = fmt.Errorf("error at filter tags: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, e
+	}
+
+loop:
+	for {
+		select {
+		case tasks := <-tasksch:
+			if tasks == nil {
+				continue loop
+			}
+			allTasks = append(allTasks, tasks...)
+		default:
+			break loop
+		}
+	}
+
 	// repにSearchしてヒットしたもの
 	for _, rep := range reps {
-		for _, word := range words {
-			matchTasksInRep, err := rep.SearchTasks(ctx, word, query)
-			if err != nil {
-				err = fmt.Errorf("error at search %s in %s: %w", word, rep.Path(), err)
-				return nil, err
+		wg.Add(1)
+		rep := rep
+		go func(rep mi.MiRep) {
+			defer wg.Done()
+			for _, word := range words {
+				matchTasksInRep, err := rep.SearchTasks(ctx, word, query)
+				if err != nil {
+					err = fmt.Errorf("error at search %s in %s: %w", word, rep.Path(), err)
+					errch <- err
+				}
+				tasksch <- matchTasksInRep
 			}
-			matchTasks = append(matchTasks, matchTasksInRep...)
+		}(rep)
+
+		wg.Wait()
+
+	errloop2:
+		for {
+			select {
+			case e := <-errch:
+				e = fmt.Errorf("error at filter tags: %w", e)
+				existErr = true
+			default:
+				break errloop2
+			}
 		}
+		if existErr {
+			return nil, e
+		}
+
+	loop2:
+		for {
+			select {
+			case tasks := <-tasksch:
+				if tasks == nil {
+					continue loop2
+				}
+				matchTasks = append(matchTasks, tasks...)
+			default:
+				break loop2
+			}
+		}
+
 	}
 	//textRepにSearchしてヒットしたもの
 	for _, textRep := range textReps {
-		for _, word := range words {
-			matchTexts, err := textRep.Search(ctx, word)
-			if err != nil {
-				err = fmt.Errorf("error at search %s in %s: %w", word, textRep.Path(), err)
-				return nil, err
-			}
-			for _, text := range matchTexts {
-				for _, task := range allTasks {
-					if task.TaskID == text.Target {
-						matchTasks = append(matchTasks, task)
+		wg.Add(1)
+		textRep := textRep
+		go func(textRep text.TextRep) {
+			defer wg.Done()
+			matchTasks := []*mi.Task{}
+
+			for _, word := range words {
+				matchTexts, err := textRep.Search(ctx, word)
+				if err != nil {
+					err = fmt.Errorf("error at search %s in %s: %w", word, textRep.Path(), err)
+					errcht <- err
+				}
+				for _, text := range matchTexts {
+					for _, task := range allTasks {
+						if task.TaskID == text.Target {
+							matchTasks = append(matchTasks, task)
+						}
 					}
 				}
+				taskscht <- matchTasks
 			}
+		}(textRep)
+	}
+	wg.Wait()
+
+errloop3:
+	for {
+		select {
+		case e := <-errcht:
+			e = fmt.Errorf("error at filter tags: %w", e)
+			existErr = true
+		default:
+			break errloop3
 		}
 	}
+	if existErr {
+		return nil, e
+	}
+
+loop3:
+	for {
+		select {
+		case tasks := <-taskscht:
+			if tasks == nil {
+				continue loop3
+			}
+			allTasks = append(allTasks, tasks...)
+		default:
+			break loop3
+		}
+	}
+
 	// idが完全に一致するものも
 	for _, task := range allTasks {
 		for _, word := range words {
@@ -1905,26 +2442,77 @@ func orSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, word
 }
 
 func andSearch(ctx context.Context, reps mi.MiReps, textReps []text.TextRep, words []string, query *mi.SearchTaskQuery) ([]*mi.Task, error) {
+	existErr := false
+	var e error
+
 	// searchで見つかったかどうか := map[id]map[word]
 	m := map[string]map[string]bool{}
 	hitTasks := map[string]*mi.Task{}
 	allTasks := []*mi.Task{}
 
 	allTasksMap := map[string]*mi.Task{}
+
+	wg := &sync.WaitGroup{}
+	tasksch := make(chan map[string]*mi.Task, len(reps))
+	errch := make(chan error, len(reps))
+	defer close(tasksch)
+	defer close(errch)
+	taskscht := make(chan map[string]*mi.Task, len(textReps))
+	errcht := make(chan error, len(textReps))
+	defer close(taskscht)
+	defer close(errcht)
 	for _, rep := range reps {
-		tasks, err := rep.GetAllTasks(ctx)
-		if err != nil {
-			err = fmt.Errorf("error at get all task from %s: %w", rep.Path(), err)
-			return nil, err
-		}
-		for _, task := range tasks {
-			if _, exist := allTasksMap[task.TaskID]; !exist {
-				allTasksMap[task.TaskID] = task
+		wg.Add(1)
+		rep := rep
+		go func(rep mi.MiRep) {
+			defer wg.Done()
+			tasksMap := map[string]*mi.Task{}
+
+			tasks, err := rep.GetAllTasks(ctx)
+			if err != nil {
+				err = fmt.Errorf("error at get all task from %s: %w", rep.Path(), err)
+				errch <- err
 			}
-		}
+			for _, task := range tasks {
+				if _, exist := allTasksMap[task.TaskID]; !exist {
+					tasksMap[task.TaskID] = task
+				}
+			}
+			tasksch <- tasksMap
+		}(rep)
 	}
 	for _, task := range allTasksMap {
 		allTasks = append(allTasks, task)
+	}
+	wg.Wait()
+
+errloop1:
+	for {
+		select {
+		case e := <-errch:
+			e = fmt.Errorf("error at filter tags: %w", e)
+			existErr = true
+		default:
+			break errloop1
+		}
+	}
+	if existErr {
+		return nil, e
+	}
+
+loop1:
+	for {
+		select {
+		case tasks := <-tasksch:
+			if tasks == nil {
+				continue loop1
+			}
+			for taskid, task := range tasks {
+				allTasksMap[taskid] = task
+			}
+		default:
+			break loop1
+		}
 	}
 
 	for _, word := range words {

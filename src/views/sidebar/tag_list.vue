@@ -23,7 +23,7 @@ const emits = defineEmits<{
     (e: 'updated_checked_tags', tags: Array<string>): void
 }>()
 
-let tags: Ref<any> = ref({})
+let tags: Ref<any> = ref([])
 let tag_structure: Ref<any> = ref({})
 const tag_struct_ref = ref<InstanceType<typeof tag_struct> | null>(null);
 const checked_tags: Ref<Array<string>> = ref(new Array<string>());
@@ -35,10 +35,12 @@ defineExpose({
     update_tags_promise
 })
 
-update_tags_promise()
-    .then(() => { return check_all_tags_promise() })
-    .then(() => { return update_tag_struct_promise() })
-    .then(() => emits('updated_by_user'))
+watch(() => props.option, () => {
+    update_tags_promise()
+        .then(() => { return check_all_tags_promise() })
+        .then(() => { return update_tag_struct_promise() })
+        .then(() => emits('updated_by_user'))
+})
 
 watch(checked_tags, () => {
     for (let i = 0; i < tags.value.length; i++) {
@@ -56,7 +58,6 @@ watch(checked_tags, () => {
     }
     update_tag_struct_promise()
 })
-
 
 // 渡されたタグのチェック状態を更新します。
 function updated_checked_tags(checked_tags: Array<any>, check: boolean) {

@@ -13,10 +13,17 @@
                 </v-row>
             </v-container>
         </v-card-title>
-        <board_task v-for="task_info in task_infos" :key="task_info.task.task_id" :task_info="task_info"
-            @errors="emit_errors" @copied_task_id="emit_copied_task_id" @added_tag="emit_added_tag"
-            @added_text="emit_added_text" @updated_task="emit_updated_task" @deleted_task="emit_deleted_task"
-            @clicked_task="emit_clicked_task" />
+        <div>
+            <board_task v-for="task_info in task_infos" :key="task_info.task.task_id" :task_info="task_info"
+                @errors="emit_errors" @copied_task_id="emit_copied_task_id" @added_tag="emit_added_tag"
+                @added_text="emit_added_text" @updated_task="emit_updated_task" @deleted_task="emit_deleted_task"
+                @clicked_task="emit_clicked_task" />
+            <v-overlay v-model="is_loading" contained :persistent="true">
+                <div class="progress_overlay">
+                    <v-progress-circular class="progress" indeterminate :color="'indigo'" />
+                </div>
+            </v-overlay>
+        </div>
     </v-card>
 </template>
 
@@ -33,6 +40,7 @@ interface Props {
     task_infos: Array<TaskInfo>
     board_name: string
     selected_board_name: string | null
+    loading: boolean
 }
 
 const props = defineProps<Props>()
@@ -49,9 +57,13 @@ const emits = defineEmits<{
 }>()
 
 const title_style: Ref<any> = ref(generate_title_style())
+const is_loading: Ref<boolean> = ref(true)
 
 watch(() => props.selected_board_name, () => {
     update_style()
+})
+watch(() => props.loading, () => {
+    is_loading.value = props.loading
 })
 
 function update_style() {
@@ -130,4 +142,20 @@ function drop(e: DragEvent) {
 }
 </script>
 
-<style></style>
+<style>
+.progress_overlay {
+    position: absolute;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+}
+
+.progress {
+    top: calc(50% - (32px/2));
+    left: calc(50% - (32px/2));
+}
+
+.v-overlay__content {
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+}
+</style>

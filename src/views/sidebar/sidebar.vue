@@ -6,9 +6,9 @@
             ref="check_condition_selectbox_ref" />
         <sort_condition_selectbox @errors="emit_errors" @updated_sort_type="updated_sort_type"
             ref="sort_condition_selectbox_ref" />
-        <board_list :option="option" @errors="emit_errors" @updated_by_user="updated_boards_by_user"
+        <board_list v-if="option" :option="option" @errors="emit_errors" @updated_by_user="updated_boards_by_user"
             @clicked_board="clicked_board" ref="board_list_ref" />
-        <tag_list :option="option" @errors="emit_errors" @updated_by_user="updated_tags_by_user"
+        <tag_list v-if="option" :option="option" @errors="emit_errors" @updated_by_user="updated_tags_by_user"
             @updated_checked_tags="updated_checked_tags" ref="tag_list_ref" />
     </div>
 </template>
