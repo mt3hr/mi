@@ -1,19 +1,24 @@
 {
   "name": "mi",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "install_app": "rimraf src/app/mi/mi/embed/html && vue-tsc --noEmit && vite build && cpx -C dist src/app/mi/mi/embed/html && cd src/app/mi/main/mi && go install -ldflags \"-H windowsgui\"",
-    "install_server": "rimraf src/app/mi/mi/embed/html && vue-tsc --noEmit && vite build && cpx -C dist src/app/mi/mi/embed/html && cd src/app/mi/main/mi_server && go install",
+    "clean_app_embed": "rimraf src/app/mi/mi/embed/html",
+    "copy_dist_to_app_embed": "mkdirp src/app/mi/mi/embed/html && copyfiles -u 1 \"dist/**/*\" src/app/mi/mi/embed/html",
+    "preparate_install": "npm run clean_app_embed && npm run build && npm run copy_dist_to_app_embed",
+    "install_app": "npm run preparate_install && cd src/app/mi/main/mi && go install -ldflags \"-H windowsgui\"",
+    "install_server": "npm run preparate_install && cd src/app/mi/main/mi_server && go install",
     "preview": "vite preview",
     "lint": "eslint . --fix --ignore-path .gitignore"
   },
   "dependencies": {
     "@mdi/font": "7.0.96",
     "@vuepic/vue-datepicker": "^4.2.3",
+    "copyfiles": "^2.4.1",
     "core-js": "^3.8.3",
+    "mkdirp": "^3.0.1",
     "move-file": "^3.1.0",
     "rimraf": "^5.0.0",
     "roboto-fontface": "*",

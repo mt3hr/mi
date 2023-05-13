@@ -1368,6 +1368,7 @@ func LaunchServer() error {
 		wg := &sync.WaitGroup{}
 		ch := make(chan []*tag.Tag, len(LoadedRepositories.TagReps))
 		for _, tagRep := range LoadedRepositories.TagReps {
+			tagRep := tagRep
 			wg.Add(1)
 			go func(tagRep tag.TagRep) {
 				defer wg.Done()
@@ -1429,6 +1430,7 @@ func LaunchServer() error {
 		wg := &sync.WaitGroup{}
 		ch := make(chan []string, len(LoadedRepositories.MiReps))
 		for _, miRep := range LoadedRepositories.MiReps {
+			miRep := miRep
 			wg.Add(1)
 			go func(miRep mi.MiRep) {
 				defer wg.Done()
@@ -1448,6 +1450,7 @@ func LaunchServer() error {
 					}
 					repsBoardNames = append(repsBoardNames, boardInfo.BoardName)
 				}
+				ch <- repsBoardNames
 			}(miRep)
 		}
 		wg.Wait()
