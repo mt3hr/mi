@@ -154,7 +154,8 @@ function drop(e: DragEvent) {
     left: calc(50% - (32px/2));
 }
 
-.v-overlay__content {
+.v-overlay__content:has(.progress_overlay),
+.progress_overlay {
     width: -webkit-fill-available;
     height: -webkit-fill-available;
 }
