@@ -239,7 +239,6 @@ func (m MiReps) GetLatestTaskTitleInfoFromTaskID(ctx context.Context, taskID str
 	for _, miRep := range m {
 		titleInfo, err := miRep.GetLatestTaskTitleInfoFromTaskID(ctx, taskID)
 		if err != nil {
-			fmt.Printf("err = %+v\n", err)
 			continue
 		}
 		taskTitleInfos = append(taskTitleInfos, titleInfo)
@@ -527,7 +526,6 @@ func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
 	checkStateInfos, _ := m.GetAllCheckStateInfos(ctx)
 	for _, checkStateInfo := range checkStateInfos {
 		if checkStateInfo.CheckStateID == id {
-			fmt.Printf("checkStateInfo = %+v\n", checkStateInfo)
 			titleInfo, err := m.GetLatestTaskTitleInfoFromTaskID(ctx, checkStateInfo.TaskID)
 			if err != nil {
 				panic(err)
