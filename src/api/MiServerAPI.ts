@@ -151,13 +151,14 @@ export default class MiServerAPI {
         response.task_info.task_title_info.updated_time = new Date(response.task_info.task_title_info.updated_time)
         return response
     }
-    public async get_tasks_from_board(get_tasks_from_board_request: GetTasksFromBoardRequest): Promise<GetTasksFromBoardResponse> {
+    public async get_tasks_from_board(get_tasks_from_board_request: GetTasksFromBoardRequest, abort_controller: AbortController): Promise<GetTasksFromBoardResponse> {
         const res = await fetch(get_tasks_from_board_address, {
             method: get_tasks_from_board_method,
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(get_tasks_from_board_request),
+            signal: abort_controller.signal,
         })
         const json = await res.json()
         const response: GetTasksFromBoardResponse = json

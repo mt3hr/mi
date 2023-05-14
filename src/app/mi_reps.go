@@ -10,8 +10,6 @@ import (
 	"github.com/mt3hr/rykv/kyou"
 )
 
-//TODO errch
-
 type MiReps []MiRep
 
 func (m MiReps) UpdateCache(ctx context.Context) error {
@@ -20,8 +18,12 @@ func (m MiReps) UpdateCache(ctx context.Context) error {
 
 func (m MiReps) GetAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, error) {
 	checkStateInfos := map[string]*CheckStateInfo{}
+	existErr := false
+	var err error
 	wg := &sync.WaitGroup{}
+	ch := make(chan []*CheckStateInfo, len(m))
 	errch := make(chan error, len(m))
+	defer close(ch)
 	defer close(errch)
 	for _, miRep := range m {
 		wg.Add(1)
@@ -33,27 +35,39 @@ func (m MiReps) GetAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, e
 				errch <- err
 				return
 			}
-			for _, checkStateInfo := range matchTaskscheckStateInfos {
-				checkStateInfos[checkStateInfo.CheckStateID] = checkStateInfo
-			}
+			ch <- matchTaskscheckStateInfos
 		}(miRep)
 	}
 	wg.Wait()
-	existErr := false
-	err := fmt.Errorf("")
-loop:
+errloop:
 	for {
 		select {
 		case e := <-errch:
 			err = fmt.Errorf("error at getAllCheckStateInfos: %w", e)
 			existErr = true
 		default:
-			break loop
+			break errloop
 		}
 	}
 	if existErr {
 		return nil, err
 	}
+
+loop:
+	for {
+		select {
+		case t := <-ch:
+			if t == nil {
+				continue loop
+			}
+			for _, checkStateInfo := range t {
+				checkStateInfos[checkStateInfo.CheckStateID] = checkStateInfo
+			}
+		default:
+			break loop
+		}
+	}
+
 	allCheckStateInfos := []*CheckStateInfo{}
 	for _, task := range checkStateInfos {
 		if task == nil {
@@ -67,8 +81,12 @@ loop:
 func (m MiReps) SearchTasks(ctx context.Context, word string, query *SearchTaskQuery) ([]*Task, error) {
 	taskMap := map[string]*Task{}
 
+	existErr := false
+	var err error
 	wg := &sync.WaitGroup{}
+	ch := make(chan []*Task, len(m))
 	errch := make(chan error, len(m))
+	defer close(ch)
 	defer close(errch)
 	for _, miRep := range m {
 		wg.Add(1)
@@ -80,26 +98,38 @@ func (m MiReps) SearchTasks(ctx context.Context, word string, query *SearchTaskQ
 				errch <- err
 				return
 			}
-			for _, task := range tasks {
-				taskMap[task.TaskID] = task
-			}
+			ch <- tasks
+
 		}(miRep)
 	}
 	wg.Wait()
-	existErr := false
-	err := fmt.Errorf("")
-loop:
+errloop:
 	for {
 		select {
 		case e := <-errch:
 			err = fmt.Errorf("error at SearchTask: %w", e)
 			existErr = true
 		default:
-			break loop
+			break errloop
 		}
 	}
 	if existErr {
 		return nil, err
+	}
+
+loop:
+	for {
+		select {
+		case t := <-ch:
+			if t == nil {
+				continue loop
+			}
+			for _, task := range t {
+				taskMap[task.TaskID] = task
+			}
+		default:
+			break loop
+		}
 	}
 
 	tasks := []*Task{}
@@ -114,8 +144,12 @@ loop:
 
 func (m MiReps) GetAllTasks(ctx context.Context) ([]*Task, error) {
 	taskMap := map[string]*Task{}
+	existErr := false
+	var err error
 	wg := &sync.WaitGroup{}
+	ch := make(chan []*Task, len(m))
 	errch := make(chan error, len(m))
+	defer close(ch)
 	defer close(errch)
 	for _, miRep := range m {
 		wg.Add(1)
@@ -127,26 +161,36 @@ func (m MiReps) GetAllTasks(ctx context.Context) ([]*Task, error) {
 				errch <- err
 				return
 			}
-			for _, task := range tasks {
-				taskMap[task.TaskID] = task
-			}
+			ch <- tasks
 		}(miRep)
 	}
 	wg.Wait()
-	existErr := false
-	err := fmt.Errorf("")
-loop:
+errloop:
 	for {
 		select {
 		case e := <-errch:
 			err = fmt.Errorf("error at GetAllTasks: %w", e)
 			existErr = true
 		default:
-			break loop
+			break errloop
 		}
 	}
 	if existErr {
 		return nil, err
+	}
+loop:
+	for {
+		select {
+		case t := <-ch:
+			if t == nil {
+				continue loop
+			}
+			for _, task := range t {
+				taskMap[task.TaskID] = task
+			}
+		default:
+			break loop
+		}
 	}
 
 	tasks := []*Task{}
@@ -442,6 +486,7 @@ func (m MiReps) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error) {
 	kyous := []*kyou.Kyou{}
 	wg := &sync.WaitGroup{}
 	ch := make(chan []*kyou.Kyou, len(m))
+	defer close(ch)
 	for _, miRep := range m {
 		wg.Add(1)
 		miRep := miRep

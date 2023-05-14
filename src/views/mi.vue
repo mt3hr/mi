@@ -80,6 +80,7 @@ const sidebar_ref = ref<InstanceType<typeof sidebar> | null>(null);
 const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(null);
 const detail_task_ref = ref<InstanceType<typeof detail_task> | null>(null);
 const query_map: Ref<any> = ref({})
+const abort_controller_map: Ref<any> = ref({})
 const task_infos_map: Ref<any> = ref({})
 const loading_map: Ref<any> = ref({})
 
@@ -129,11 +130,17 @@ function update_board(board_name: string) {
         return
     }
     loading_map.value[board_name] = true
+    if (abort_controller_map.value[board_name]) {
+        abort_controller_map.value[board_name].abort()
+    }
+    const abort_controller = new AbortController()
+    abort_controller_map.value[board_name] = abort_controller
+
     query!.board = board_name
     query_map.value[board_name] = query
     const request = new GetTasksFromBoardRequest()
     request.query = query!
-    api.get_tasks_from_board(request)
+    api.get_tasks_from_board(request, abort_controller)
         .then(res => {
             if (res.errors && res.errors.length != 0) {
                 write_messages(res.errors)
@@ -142,6 +149,9 @@ function update_board(board_name: string) {
             }
             task_infos_map.value[board_name] = res.boards_tasks
             loading_map.value[board_name] = false
+        })
+        .catch((err) => {
+            return // DOMException: The user aborted a request.が飛んで邪魔なので握りつぶす
         })
 }
 function close_board(board_name: string) {
