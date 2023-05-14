@@ -709,7 +709,7 @@ func (m *miRepSQLiteImpl) GetContentHTML(ctx context.Context, id string) (string
 			if task.TaskID == id {
 				taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
 				if err != nil {
-					return "", err
+					continue
 				}
 				return `<p>タスク作成:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
 			}
@@ -722,7 +722,7 @@ func (m *miRepSQLiteImpl) GetContentHTML(ctx context.Context, id string) (string
 			if checkStateInfo.CheckStateID == id {
 				taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
 				if err != nil {
-					return "", err
+					continue
 				}
 				if taskInfo.CheckStateInfo.IsChecked {
 					return `<p>タスクチェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
