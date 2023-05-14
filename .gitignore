@@ -2,6 +2,8 @@
 node_modules
 /dist
 /src/app/mi/mi/embed/html/*
+go.mod
+go.sum
 
 # local env files
 .env.local
