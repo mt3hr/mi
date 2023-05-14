@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "go_mod": "cd src/app && go mod init github.com/mt3hr/mi/src/app && go mod tidy",
+    "go_mod": "cd src/app && go mod init github.com/mt3hr/mi/src/app && cd mi/main/mi && go mod tidy",
     "clean_app_embed": "rimraf src/app/mi/mi/embed/html",
     "copy_dist_to_app_embed": "mkdirp src/app/mi/mi/embed/html && copyfiles -u 1 \"dist/**/*\" src/app/mi/mi/embed/html",
     "preparate_install": "npm run clean_app_embed && npm run build && npm run copy_dist_to_app_embed",
