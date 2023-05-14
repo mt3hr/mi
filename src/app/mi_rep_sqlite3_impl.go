@@ -692,43 +692,38 @@ func (m *miRepSQLiteImpl) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error)
 		return nil, err
 	}
 	for _, checkStateInfo := range checkStateInfos {
-		kyous = append(kyous, &kyou.Kyou{
-			ID:          checkStateInfo.CheckStateID,
-			Time:        checkStateInfo.UpdatedTime,
-			RepName:     m.RepName(),
-			ImageSource: "",
-		})
+		if checkStateInfo.IsChecked {
+			kyous = append(kyous, &kyou.Kyou{
+				ID:          checkStateInfo.CheckStateID,
+				Time:        checkStateInfo.UpdatedTime,
+				RepName:     m.RepName(),
+				ImageSource: "",
+			})
+		}
 	}
 	return kyous, nil
 }
 
 func (m *miRepSQLiteImpl) GetContentHTML(ctx context.Context, id string) (string, error) {
-	tasks, _ := m.GetAllTasks(ctx)
-	if tasks != nil {
-		for _, task := range tasks {
-			if task.TaskID == id {
-				taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
-				if err != nil {
-					continue
-				}
-				return `<p>タスク作成:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+	task, _ := m.GetLatestTaskTitleInfoFromTaskID(ctx, id)
+	if task != nil {
+		if task.TaskID == id {
+			titleInfo, err := m.GetLatestTaskTitleInfoFromTaskID(ctx, task.TaskID)
+			if err == nil {
+				return `<p>タスク作成:<br/>` + titleInfo.Title + `</p>`, nil
 			}
 		}
 	}
 
 	checkStateInfos, _ := m.GetAllCheckStateInfos(ctx)
-	if checkStateInfos != nil {
-		for _, checkStateInfo := range checkStateInfos {
-			if checkStateInfo.CheckStateID == id {
-				taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
-				if err != nil {
-					continue
-				}
-				if taskInfo.CheckStateInfo.IsChecked {
-					return `<p>タスクチェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
-				} else {
-					return `<p>タスク未チェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
-				}
+	for _, checkStateInfo := range checkStateInfos {
+		if checkStateInfo.CheckStateID == id {
+			titleInfo, err := m.GetLatestTaskTitleInfoFromTaskID(ctx, checkStateInfo.TaskID)
+			if err != nil {
+				continue
+			}
+			if checkStateInfo.IsChecked {
+				return `<p>タスクチェック:<br/>` + titleInfo.Title + `</p>`, nil
 			}
 		}
 	}
@@ -802,13 +797,15 @@ func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou
 					ImageSource: "",
 				})
 				for _, checkStateInfo := range checkStateInfos {
-					if checkStateInfo.TaskID == taskInfo.Task.TaskID {
-						kyous = append(kyous, &kyou.Kyou{
-							ID:          checkStateInfo.CheckStateID,
-							Time:        checkStateInfo.UpdatedTime,
-							RepName:     m.RepName(),
-							ImageSource: "",
-						})
+					if checkStateInfo.IsChecked {
+						if checkStateInfo.TaskID == taskInfo.Task.TaskID {
+							kyous = append(kyous, &kyou.Kyou{
+								ID:          checkStateInfo.CheckStateID,
+								Time:        checkStateInfo.UpdatedTime,
+								RepName:     m.RepName(),
+								ImageSource: "",
+							})
+						}
 					}
 				}
 			}

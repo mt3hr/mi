@@ -32,7 +32,7 @@ func (m MiReps) GetAllCheckStateInfos(ctx context.Context) ([]*CheckStateInfo, e
 			defer wg.Done()
 			matchTaskscheckStateInfos, err := miRep.GetAllCheckStateInfos(ctx)
 			if err != nil {
-				errch <- err
+				// errch <- err
 				return
 			}
 			ch <- matchTaskscheckStateInfos
@@ -69,11 +69,11 @@ loop:
 	}
 
 	allCheckStateInfos := []*CheckStateInfo{}
-	for _, task := range checkStateInfos {
-		if task == nil {
+	for _, checkStateInfo := range checkStateInfos {
+		if checkStateInfo == nil {
 			continue
 		}
-		allCheckStateInfos = append(allCheckStateInfos, task)
+		allCheckStateInfos = append(allCheckStateInfos, checkStateInfo)
 	}
 	return allCheckStateInfos, nil
 }
@@ -95,11 +95,10 @@ func (m MiReps) SearchTasks(ctx context.Context, word string, query *SearchTaskQ
 			defer wg.Done()
 			tasks, err := miRep.SearchTasks(ctx, word, query)
 			if err != nil {
-				errch <- err
+				// errch <- err
 				return
 			}
 			ch <- tasks
-
 		}(miRep)
 	}
 	wg.Wait()
@@ -158,7 +157,7 @@ func (m MiReps) GetAllTasks(ctx context.Context) ([]*Task, error) {
 			defer wg.Done()
 			tasks, err := miRep.GetAllTasks(ctx)
 			if err != nil {
-				errch <- err
+				// errch <- err
 				return
 			}
 			ch <- tasks
@@ -240,6 +239,7 @@ func (m MiReps) GetLatestTaskTitleInfoFromTaskID(ctx context.Context, taskID str
 	for _, miRep := range m {
 		titleInfo, err := miRep.GetLatestTaskTitleInfoFromTaskID(ctx, taskID)
 		if err != nil {
+			fmt.Printf("err = %+v\n", err)
 			continue
 		}
 		taskTitleInfos = append(taskTitleInfos, titleInfo)
@@ -494,6 +494,7 @@ func (m MiReps) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error) {
 			defer wg.Done()
 			kyous, err := miRep.GetAllKyous(ctx)
 			if err != nil {
+				// errch <- err
 				return
 			}
 			ch <- kyous
@@ -513,39 +514,35 @@ loop:
 }
 
 func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
-	tasks, err := m.GetAllTasks(ctx)
-	if err != nil {
-		return "", err
-	}
-	for _, task := range tasks {
+	task, _ := m.GetLatestTaskTitleInfoFromTaskID(ctx, id)
+	if task != nil {
 		if task.TaskID == id {
-			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
-			if err != nil {
-				continue
+			titleInfo, err := m.GetLatestTaskTitleInfoFromTaskID(ctx, task.TaskID)
+			if err == nil {
+				return `<p>タスク作成:<br/>` + titleInfo.Title + `</p>`, nil
 			}
-			return `<p>タスク作成:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
 		}
 	}
 
-	checkStateInfos, err := m.GetAllCheckStateInfos(ctx)
-	if err != nil {
-		return "", err
-	}
-
+	checkStateInfos, _ := m.GetAllCheckStateInfos(ctx)
 	for _, checkStateInfo := range checkStateInfos {
 		if checkStateInfo.CheckStateID == id {
-			taskInfo, err := m.GetTaskInfo(ctx, checkStateInfo.TaskID)
+			fmt.Printf("checkStateInfo = %+v\n", checkStateInfo)
+			titleInfo, err := m.GetLatestTaskTitleInfoFromTaskID(ctx, checkStateInfo.TaskID)
 			if err != nil {
-				continue
+				panic(err)
 			}
-			if taskInfo.CheckStateInfo.IsChecked {
-				return `<p>タスクチェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
-			} else {
-				return `<p>タスク未チェック:<br/>` + taskInfo.TaskTitleInfo.Title + `</p>`, nil
+
+			if titleInfo != nil {
+				if checkStateInfo.IsChecked {
+					return `<p>タスクチェック:<br/>` + titleInfo.Title + `</p>`, nil
+				} else {
+					return `<p>タスク未チェック:<br/>` + titleInfo.Title + `</p>`, nil
+				}
 			}
 		}
 	}
-	return "", fmt.Errorf("not found kyou id=%s", id)
+	return "", fmt.Errorf("not found kyou %s", id)
 }
 
 func (m MiReps) GetPath(ctx context.Context, id string) (string, error) {
@@ -586,6 +583,7 @@ func (m MiReps) Search(ctx context.Context, word string) ([]*kyou.Kyou, error) {
 			defer wg.Done()
 			kyous, err := miRep.Search(ctx, word)
 			if err != nil {
+				// errch <- err
 				return
 			}
 			ch <- kyous
