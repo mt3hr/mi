@@ -84,9 +84,9 @@ const abort_controller_map: Ref<any> = ref({})
 const task_infos_map: Ref<any> = ref({})
 const loading_map: Ref<any> = ref({})
 
-const actual_height = window.innerHeight;
+const actual_height = window.innerHeight
 const element_height = document!.querySelector('#control-height') ? document!.querySelector('#control-height')!.clientHeight : actual_height
-const bar_height = (actual_height - element_height) + "px";
+const bar_height = (actual_height - element_height) + "px"
 
 update_option()
     .then(() => open_board(option.value?.default_board_name))
@@ -124,6 +124,7 @@ function open_board(board_name: string) {
         return
     }
     opened_board_names.value.push(board_name)
+    load_board_search_query(board_name)
     select_board(board_name)
     update_board(board_name)
 }
@@ -144,6 +145,7 @@ function update_board(board_name: string) {
     query_map.value[board_name] = query
     const request = new GetTasksFromBoardRequest()
     request.query = query!
+    save_board_search_query(board_name, query)
     api.get_tasks_from_board(request, abort_controller)
         .then(res => {
             if (res.errors && res.errors.length != 0) {
@@ -303,6 +305,28 @@ function deleted_text() {
 }
 function update_board_struct() {
     sidebar_ref.value?.update_board_struct_promise()
+}
+function save_board_search_query(board_name: string, query: TaskSearchQuery) {
+    let check_state_str = query.check_state.toString()
+    let sort_type_str = query.sort_type.toString()
+    if (check_state_str == NaN.toString()) {
+        check_state_str = CheckState.NoCheckOnly.valueOf().toString()
+    }
+    if (sort_type_str == NaN.toString()) {
+        sort_type_str = SortType.CreatedTimeDesc.valueOf().toString()
+    }
+    window.localStorage.setItem(`board_${board_name}_check_state`, query.check_state.toString())
+    window.localStorage.setItem(`board_${board_name}_sort_type`, query.sort_type.toString())
+}
+function load_board_search_query(board_name: string) {
+    let check_state_str = window.localStorage.getItem(`board_${board_name}_check_state`)
+    let sort_type_str = window.localStorage.getItem(`board_${board_name}_sort_type`)
+    check_state_str = ((!check_state_str) || check_state_str == "") ? CheckState.NoCheckOnly.valueOf().toString() : check_state_str
+    sort_type_str = ((!sort_type_str) || sort_type_str == "") ? SortType.CreatedTimeDesc.valueOf().toString() : sort_type_str
+    const check_state: CheckState = Number.parseInt(check_state_str!) as CheckState
+    const sort_type: SortType = Number.parseInt(sort_type_str!) as SortType
+    sidebar_ref.value?.set_check_state_by_application(check_state)
+    sidebar_ref.value?.set_sort_type_by_application(sort_type)
 }
 </script>
 <style>
