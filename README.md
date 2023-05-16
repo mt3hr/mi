@@ -33,11 +33,13 @@ npm i
 
 アプリケーションインストール  
 ```
+npm run go_mod
 npm run install_app
 ```
 
 サーバインストール  
 ```
+npm run go_mod
 npm run install_build
 ```
 </details>

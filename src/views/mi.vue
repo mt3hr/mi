@@ -7,7 +7,7 @@
             @updated_checked_tags="updated_checked_tags" />
     </v-navigation-drawer>
 
-    <v-app-bar app color="indigo" flat dark height="50px">
+    <v-app-bar class="app_bar" app color="indigo" flat dark height="50px">
         <v-app-bar-nav-icon @click.stop="show_drawer = !show_drawer" />
         <v-toolbar-title>mi</v-toolbar-title>
         <v-spacer />
@@ -83,6 +83,10 @@ const query_map: Ref<any> = ref({})
 const abort_controller_map: Ref<any> = ref({})
 const task_infos_map: Ref<any> = ref({})
 const loading_map: Ref<any> = ref({})
+
+const actual_height = window.innerHeight;
+const element_height = document!.querySelector('#control-height') ? document!.querySelector('#control-height')!.clientHeight : actual_height
+const bar_height = (actual_height - element_height) + "px";
 
 update_option()
     .then(() => open_board(option.value?.default_board_name))
@@ -307,9 +311,9 @@ function update_board_struct() {
 }
 
 .board {
-    height: calc((100vh - 50px) / 2);
-    max-height: calc((100vh - 50px) / 2);
-    min-height: calc((100vh - 50px) / 2);
+    height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    max-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    min-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
     width: 390px;
     min-width: 390px;
     max-width: 390px;
@@ -317,22 +321,22 @@ function update_board_struct() {
 }
 
 .detail_task_card {
-    height: calc((100vh - 50px) / 2);
-    max-height: calc((100vh - 50px) / 2);
-    min-height: calc((100vh - 50px) / 2);
+    height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    max-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    min-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
     overflow-y: scroll;
 }
 
 .boards_wrap {
-    height: calc((100vh - 50px) / 2);
-    max-height: calc((100vh - 50px) / 2);
-    min-height: calc((100vh - 50px) / 2);
+    height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    max-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    min-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
 }
 
 .detail_task_row {
-    height: calc((100vh - 50px) / 2);
-    max-height: calc((100vh - 50px) / 2);
-    min-height: calc((100vh - 50px) / 2);
+    height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    max-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    min-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
 }
 
 .boards_view {
@@ -356,5 +360,17 @@ function update_board_struct() {
     width: 370px;
     min-width: 370px;
     max-width: 370px;
+}
+
+.app_bar {
+    height: 50px;
+    max-height: 50px;
+    min-height: 50px;
+}
+
+#control-height {
+    height: 100vh;
+    width: 0;
+    position: absolute;
 }
 </style>
