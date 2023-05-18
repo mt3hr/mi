@@ -1,6 +1,6 @@
 {
   "name": "mi",
-  "version": "1.1.8",
+  "version": "1.3.0",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -15,16 +15,23 @@
     "lint": "eslint . --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.7",
+    "@fullcalendar/daygrid": "^6.1.7",
+    "@fullcalendar/list": "^6.1.7",
+    "@fullcalendar/timegrid": "^6.1.7",
+    "@fullcalendar/vue3": "^6.1.7",
     "@mdi/font": "7.0.96",
     "@vuepic/vue-datepicker": "^4.2.3",
     "copyfiles": "^2.4.1",
     "core-js": "^3.8.3",
     "mkdirp": "^3.0.1",
     "move-file": "^3.1.0",
+    "qalendar": "^2.5.0",
     "rimraf": "^5.0.0",
     "roboto-fontface": "*",
     "vue": "^3.2.13",
     "vue-router": "^4.0.0",
+    "vue-simple-calendar": "^6.3.1",
     "vuetify": "^3.0.0",
     "webfontloader": "^1.0.0"
   },

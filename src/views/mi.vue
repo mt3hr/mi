@@ -1,5 +1,5 @@
 <template>
-    <v-navigation-drawer v-model="show_drawer" app>
+    <v-navigation-drawer v-model="is_show_drawer" app>
         <sidebar :option="option" ref="sidebar_ref" @errors="write_messages"
             @updated_check_condition="updated_check_condition" @updated_sort_type="updated_sort_type"
             @updated_search_word="updated_search_word" @updated_boards_by_user="updated_boards_by_user"
@@ -8,9 +8,12 @@
     </v-navigation-drawer>
 
     <v-app-bar class="app_bar" app color="indigo" flat dark height="50px">
-        <v-app-bar-nav-icon @click.stop="show_drawer = !show_drawer" />
+        <v-app-bar-nav-icon @click.stop="is_show_drawer = !is_show_drawer" />
         <v-toolbar-title>mi</v-toolbar-title>
         <v-spacer />
+        <v-btn v-if="inited" icon="mdi-format-align-justify"
+            @click="is_show_detail_task_view = !is_show_detail_task_view" />
+        <v-btn v-if="inited" icon="mdi-calendar" @click="is_show_calendar_view = !is_show_calendar_view" />
     </v-app-bar>
 
     <v-main class="main">
@@ -28,9 +31,23 @@
                 </tr>
             </table>
         </div>
-        <detail_task class="detail_task pa-0 ma-0" v-if="watching_task_info" :task_info="watching_task_info"
-            @copied_task_id="copied_task_id" @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
-            @deleted_task="deleted_task" @deleted_tag="deleted_tag" @deleted_text="deleted_text" ref="detail_task_ref" />
+        <div class="detail_task_and_calendar_view">
+            <table class="pa-0 ma-0">
+                <tr class="pa-0 ma-0 detail_task_row">
+                    <td class="pa-0 ma-0">
+                        <detail_task class="detail_task pa-0 ma-0" v-if="watching_task_info && is_show_detail_task_view"
+                            :task_info="watching_task_info" @copied_task_id="copied_task_id" @added_tag="added_tag"
+                            @added_text="added_text" @updated_task="updated_task" @deleted_task="deleted_task"
+                            @deleted_tag="deleted_tag" @deleted_text="deleted_text" ref="detail_task_ref" />
+                    </td>
+                    <td class="pa-0 ma-0">
+                        <calendar v-show="is_show_calendar_view" :mode="calendar_sort_mode"
+                            :task_infos="task_infos_map[watching_board_name!]" @errors="write_messages"
+                            @clicked_date="scroll_to_date" ref="calendar_ref" />
+                    </td>
+                </tr>
+            </table>
+        </div>
     </v-main>
     <v-avatar :style="floatingActionButtonStyle()" color="indigo" class="position-fixed">
         <v-btn color="white" icon="mdi-plus" variant="text" @click="show_add_task_dialog" />
@@ -38,14 +55,14 @@
 
     <add_task_dialog :option="option" @errors="write_messages" @added_task="added_task" ref="add_task_dialog_ref" />
 
-    <v-snackbar v-model="show_message_snackbar">
+    <v-snackbar v-model="is_show_message_snackbar">
         <v-container class="ma-0 pa-0">
             <v-row class="ma-0 pa-0">
                 <v-col cols="11" class="ma-0 pa-0">
                     <p>{{ message }}</p>
                 </v-col>
                 <v-col cols="1" class="ma-0 pa-0">
-                    <v-btn icon="mdi-close" @click="show_message_snackbar = false" width="20px" height="20px"
+                    <v-btn icon="mdi-close" @click="is_show_message_snackbar = false" width="20px" height="20px"
                         class="ma-0 pa-0" />
                 </v-col>
             </v-row>
@@ -60,7 +77,6 @@ import board from './board/board.vue';
 import detail_task from './task/detail_task.vue';
 import add_task_dialog from './dialog/add_task_dialog.vue';
 import ApplicationConfig from '@/api/data_struct/ApplicationConfig';
-import BoardInfo from '@/api/data_struct/BoardInfo';
 import TaskInfo from '@/api/data_struct/TaskInfo';
 import CheckState from '@/api/data_struct/CheckState';
 import SortType from '@/api/data_struct/SortType';
@@ -68,9 +84,11 @@ import MiServerAPI from '@/api/MiServerAPI';
 import GetApplicationConfigRequest from '@/api/GetApplicationConfigRequest';
 import TaskSearchQuery from '@/api/data_struct/TaskSearchQuery';
 import GetTasksFromBoardRequest from '@/api/GetTasksFromBoardRequest';
+import Calendar from './calendar/calendar.vue';
 
-const show_drawer: Ref<boolean | null> = ref(null)
-const show_message_snackbar: Ref<boolean> = ref(false)
+const inited: Ref<boolean> = ref(false)
+const is_show_drawer: Ref<boolean | null> = ref(null)
+const is_show_message_snackbar: Ref<boolean> = ref(false)
 const message: Ref<string> = ref("")
 const option: Ref<ApplicationConfig> = ref(new ApplicationConfig())
 const opened_board_names: Ref<Array<string>> = ref(new Array<string>())
@@ -79,17 +97,28 @@ const watching_board_name: Ref<string | null> = ref(null)
 const sidebar_ref = ref<InstanceType<typeof sidebar> | null>(null);
 const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(null);
 const detail_task_ref = ref<InstanceType<typeof detail_task> | null>(null);
+const calendar_ref = ref<InstanceType<typeof Calendar> | null>(null);
 const query_map: Ref<any> = ref({})
 const abort_controller_map: Ref<any> = ref({})
 const task_infos_map: Ref<any> = ref({})
 const loading_map: Ref<any> = ref({})
+const calendar_sort_mode: Ref<SortType> = ref(SortType.CreatedTimeDesc)
+const is_show_calendar_view: Ref<boolean> = ref(false)
+const is_show_detail_task_view: Ref<boolean> = ref(true)
 
 const actual_height = window.innerHeight
 const element_height = document!.querySelector('#control-height') ? document!.querySelector('#control-height')!.clientHeight : actual_height
 const bar_height = (actual_height - element_height) + "px"
 
 update_option()
-    .then(() => open_board(option.value?.default_board_name))
+    .then(() => {
+        clicked_board_at_sidebar(option.value.default_board_name)
+        inited.value = true
+    })
+
+watch(is_show_calendar_view, () => {
+    update_calendar()
+})
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 function floatingActionButtonStyle() {
@@ -114,7 +143,7 @@ async function update_option() {
 }
 function write_message(message_: string) {
     message.value = message_
-    show_message_snackbar.value = true
+    is_show_message_snackbar.value = true
 }
 function set_watching_task(task_info: TaskInfo) {
     watching_task_info.value = task_info
@@ -155,6 +184,7 @@ function update_board(board_name: string) {
             }
             task_infos_map.value[board_name] = res.boards_tasks
             loading_map.value[board_name] = false
+            update_calendar()
         })
         .catch((err) => {
             return // DOMException: The user aborted a request.が飛んで邪魔なので握りつぶす
@@ -177,6 +207,7 @@ function close_board(board_name: string) {
     if (watching_board_name.value === board_name) {
         watching_board_name.value = null
     }
+    update_calendar()
 }
 async function select_board(board_name: string | null) {
     watching_board_name.value = board_name
@@ -192,6 +223,7 @@ async function select_board(board_name: string | null) {
     sidebar_ref.value?.set_sort_type_by_application(query_map.value![board_name!].sort_type)
     sidebar_ref.value?.set_check_state_by_application(query_map.value![board_name!].check_state)
     sidebar_ref.value?.set_checked_tags_by_application(query_map.value![board_name!].tags)
+    update_calendar()
 }
 async function write_messages(messages: Array<string>) {
     let is_first = true
@@ -205,7 +237,8 @@ async function write_messages(messages: Array<string>) {
 function updated_check_condition(check_state: CheckState) {
     update_board(watching_board_name.value!)
 }
-function updated_sort_type(sort_tyhpe: SortType) {
+function updated_sort_type(sort_type: SortType) {
+    calendar_sort_mode.value = sort_type
     update_board(watching_board_name.value!)
 }
 function updated_search_word(word: string) {
@@ -229,6 +262,7 @@ function clicked_board_at_sidebar(board_name: string) {
         open_board(board_name)
     }
     select_board(board_name)
+    update_calendar()
 }
 function show_add_task_dialog() {
     add_task_dialog_ref.value?.show()
@@ -264,8 +298,8 @@ function added_text() {
     detail_task_ref.value?.update_texts()
     write_message("テキストを追加しました")
 }
-function updated_task(old_task_info: TaskInfo, new_task_info: TaskInfo) {
-    const old_board_name = old_task_info.board_info.board_name
+function updated_task(old_task_info: TaskInfo | null | undefined, new_task_info: TaskInfo) {
+    const old_board_name = old_task_info ? old_task_info.board_info.board_name : ""
     const new_board_name = new_task_info.board_info.board_name
     if (is_opened_board(old_board_name)) {
         select_board(old_board_name)
@@ -328,6 +362,42 @@ function load_board_search_query(board_name: string) {
     sidebar_ref.value?.set_check_state_by_application(check_state)
     sidebar_ref.value?.set_sort_type_by_application(sort_type)
 }
+function scroll_to_date(date: Date) {
+    if (watching_board_name.value) {
+        const board_name: string = watching_board_name.value!
+        const task_infos: Array<TaskInfo> = task_infos_map.value[board_name] as Array<TaskInfo>
+        let scroll_target_task_id = ""
+        for (let i = 0; i < task_infos.length; i++) {
+            const task_info = task_infos[i]
+            if (calendar_sort_mode.value == SortType.CreatedTimeDesc) {
+                if (task_info.task.created_time.getTime() <= date.getTime()) {
+                    scroll_target_task_id = task_info.task.task_id
+                    break
+                }
+            }
+            if (calendar_sort_mode.value == SortType.LimitTimeAsc) {
+                if (!task_info.limit_info.limit) {
+                    continue
+                }
+                if (task_info.limit_info.limit.getTime() >= date.getTime()) {
+                    scroll_target_task_id = task_info.task.task_id
+                    break
+                }
+            }
+        }
+        //TODO
+        const board_element = document.getElementById(watching_board_name.value)
+        const board_task_element = document.getElementById(scroll_target_task_id)
+        if (board_element && board_task_element) {
+            board_task_element.scrollIntoView(true)
+        }
+    }
+}
+
+function update_calendar() {
+    calendar_sort_mode.value = sidebar_ref.value?.construct_task_search_query().sort_type!
+    calendar_ref.value?.update_calendar()
+}
 </script>
 <style>
 .main {
@@ -335,9 +405,9 @@ function load_board_search_query(board_name: string) {
 }
 
 .board {
-    height: calc((100vh - 50px + v-bind(bar_height)) / 2);
-    max-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
-    min-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    max-height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    min-height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
     width: 390px;
     min-width: 390px;
     max-width: 390px;
@@ -345,38 +415,47 @@ function load_board_search_query(board_name: string) {
 }
 
 .detail_task_card {
-    height: calc((100vh - 50px + v-bind(bar_height)) / 2);
-    max-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
-    min-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    max-height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    min-height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    width: 390px;
+    min-width: 390px;
+    max-width: 390px;
     overflow-y: scroll;
 }
 
 .boards_wrap {
-    height: calc((100vh - 50px + v-bind(bar_height)) / 2);
-    max-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
-    min-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    max-height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    min-height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
 }
 
 .detail_task_row {
-    height: calc((100vh - 50px + v-bind(bar_height)) / 2);
-    max-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
-    min-height: calc((100vh - 50px + v-bind(bar_height)) / 2);
+    height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    max-height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
+    min-height: calc(((100vh - 50px + v-bind(bar_height)) / 2) - 10px);
 }
 
+.detail_task_and_calendar_view,
 .boards_view {
-    width: 100vw;
-    max-width: 100vw;
-    min-width: 100vw;
+    /* width: 100vw; */
+    /* max-width: 100vw; */
+    /* min-width: 100vw; */
     overflow-x: scroll;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
 }
 
+.detail_task_and_calendar_view::-webkit-scrollbar,
 .boards_view::-webkit-scrollbar {
     display: none;
 }
 
-.html {
+#app,
+body,
+.html,
+.v-application {
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
     overflow-y: hidden;
 }
 

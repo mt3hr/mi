@@ -1,5 +1,5 @@
 <template>
-    <v-card @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task" class="board_task_card pa-0 ma-0"
+    <v-card :id="task_info.task.task_id" @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task" class="board_task_card pa-0 ma-0"
         draggable="true" @dragstart="dragstart">
         <table class="task_title_line_table">
             <tr>
@@ -134,5 +134,9 @@ function dragstart(e: DragEvent) {
     width: 190px;
     max-width: 190px;
     min-width: 190px;
+}
+#app {
+    overflow-y: hidden;
+    max-height: 100vh;
 }
 </style>

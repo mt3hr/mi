@@ -1,5 +1,5 @@
 <template>
-    <v-card @click="emit_clicked_board" dropzone="true" @drop="drop" @dragover="dragover">
+    <v-card :id="board_name" @click="emit_clicked_board" dropzone="true" @drop="drop" @dragover="dragover">
         <v-card-title :style="title_style">
             <v-container class="pa-0 ma-0">
                 <v-row class="pa-0 ma-0">
@@ -49,7 +49,7 @@ const emits = defineEmits<{
     (e: 'copied_task_id', task_info: TaskInfo): void
     (e: 'added_tag'): void
     (e: 'added_text'): void
-    (e: 'updated_task', old_task_info: TaskInfo, new_task_info: TaskInfo): void
+    (e: 'updated_task', old_task_info: TaskInfo | null | undefined, new_task_info: TaskInfo): void
     (e: 'deleted_task', task_info: TaskInfo): void
     (e: 'clicked_task', task_info: TaskInfo): void
     (e: 'clicked_board', board_name: string): void
@@ -70,7 +70,7 @@ function update_style() {
     title_style.value = generate_title_style()
 }
 function generate_title_style(): any {
-    return { background: props.selected_board_name == props.board_name ? "whitesmoke" : "white" }
+    return { background: props.selected_board_name == props.board_name ? "whitesmoke" : "white", position: "sticky", top: 0, "z-index": 100 }
 }
 
 function emit_errors(errors: Array<string>) {
@@ -85,7 +85,7 @@ function emit_added_tag() {
 function emit_added_text() {
     emits("added_text")
 }
-function emit_updated_task(old_task_info: TaskInfo, new_task_info: TaskInfo) {
+function emit_updated_task(old_task_info: TaskInfo | null | undefined, new_task_info: TaskInfo) {
     emits("updated_task", old_task_info, new_task_info)
 }
 function emit_deleted_task(deleted_task_info: TaskInfo) {
