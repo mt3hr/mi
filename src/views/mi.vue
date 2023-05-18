@@ -385,11 +385,12 @@ function scroll_to_date(date: Date) {
                 }
             }
         }
-        //TODO
+        const app_element = document.getElementById("app")
         const board_element = document.getElementById(watching_board_name.value)
         const board_task_element = document.getElementById(scroll_target_task_id)
         if (board_element && board_task_element) {
             board_task_element.scrollIntoView(true)
+            app_element!.scrollIntoView(true)
         }
     }
 }
