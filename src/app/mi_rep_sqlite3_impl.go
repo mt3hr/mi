@@ -789,7 +789,7 @@ func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou
 			if err != nil {
 				return nil, err
 			}
-			if strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), word) || word == "" {
+			if strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), word) || word == "" || strings.Contains(word, "タスク作成") {
 				kyous = append(kyous, &kyou.Kyou{
 					ID:          taskInfo.Task.TaskID,
 					Time:        taskInfo.Task.CreatedTime,
@@ -797,7 +797,7 @@ func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou
 					ImageSource: "",
 				})
 				for _, checkStateInfo := range checkStateInfos {
-					if checkStateInfo.IsChecked {
+					if checkStateInfo.IsChecked && (word == "" || strings.Contains(word, "タスクチェック")) {
 						if checkStateInfo.TaskID == taskInfo.Task.TaskID {
 							kyous = append(kyous, &kyou.Kyou{
 								ID:          checkStateInfo.CheckStateID,
