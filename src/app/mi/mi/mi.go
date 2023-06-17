@@ -82,7 +82,7 @@ func PersistentPreRun(_ *cobra.Command, _ []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = loadTagStruct()
+	err = loadTagStructFromFile()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -285,81 +285,6 @@ func loadBoardStruct() error {
 		}
 	}
 	LoadedConfig.ApplicationConfig.BoardStruct = MapSlice(boardStructMap)
-	return nil
-}
-
-// TagStructの順番を保証するために
-func loadTagStruct() error {
-	configOpt := getConfigFile()
-	configName := getConfigName()
-	configExt := getConfigExt()
-	configPaths := []string{}
-	configFileName := ""
-	var b []byte
-
-	if configOpt != "" {
-		// コンフィグファイルが明示的に指定された場合はそれを
-		configPaths = append(configPaths, configOpt)
-	} else {
-		// 実行ファイルの親ディレクトリ、カレントディレクトリ、ホームディレクトリの順に
-		exe, err := os.Executable()
-		if err != nil {
-			err = fmt.Errorf("error at get executable file path: %w", err)
-			log.Printf(err.Error())
-		} else {
-			configPaths = append(configPaths, filepath.Join(filepath.Dir(exe), configName+configExt))
-		}
-
-		configPaths = append(configPaths, filepath.Join(".", configName+configExt))
-
-		home, err := homedir.Dir()
-		if err != nil {
-			err = fmt.Errorf("error at get user home directory: %w", err)
-			log.Printf(err.Error())
-		} else {
-			configPaths = append(configPaths, filepath.Join(home, configName+configExt))
-		}
-	}
-
-	for _, configPath := range configPaths {
-		if _, err := os.Stat(configPath); err == nil {
-			configFileName = configPath
-			break
-		}
-	}
-
-	b, err := os.ReadFile(configFileName)
-	if err != nil {
-		err = fmt.Errorf("error at read file %s: %w", configFileName, err)
-		return err
-	}
-
-	m := yaml.MapSlice{}
-	tagStructMap := yaml.MapSlice{}
-	err = yaml.Unmarshal(b, &m)
-	if err != nil {
-		err = fmt.Errorf("error at yaml unmarshall: %w", err)
-		return err
-	}
-	for _, v := range m {
-		if v.Key == "ApplicationConfig" {
-			i, ok := v.Value.(yaml.MapSlice)
-			if !ok {
-				err = fmt.Errorf("configファイルが変です。多分ApplicationConfigの項目がありません")
-				return err
-			}
-			for _, v := range i {
-				if v.Key == "TagStruct" {
-					tagStructMap, ok = v.Value.(yaml.MapSlice)
-					if !ok {
-						err = fmt.Errorf("configファイルが変です。多分ApplicationConfigの項目、TagStructがありません")
-						return err
-					}
-				}
-			}
-		}
-	}
-	LoadedConfig.ApplicationConfig.TagStruct = MapSlice(tagStructMap)
 	return nil
 }
 

@@ -18,6 +18,7 @@ func Execute() {
 func init() {
 	cobra.MousetrapHelpText = "" // Windowsでマウスから起動しても怒られないようにする
 	serverCmd.PersistentFlags().StringVarP(&mi.ConfigFileName, "config_file", "c", "", "使用するコンフィグファイル")
+	serverCmd.PersistentFlags().StringVarP(&mi.TagStructFile, "tag_struct_file", "t", "", "使用するタグ構造ファイル")
 }
 
 var (
