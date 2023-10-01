@@ -135,6 +135,9 @@ function dragstart(e: DragEvent) {
     max-width: 190px;
     min-width: 190px;
 }
+.limit_td {
+    padding-right: 30px;
+}
 #app {
     overflow-y: hidden;
     max-height: 100vh;
