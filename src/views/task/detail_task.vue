@@ -1,5 +1,5 @@
 <template>
-    <v-card @contextmenu.prevent.stop="show_contextmenu" class="detail_task_card pa-0 ma-0">
+    <v-card @contextmenu.prevent.stop="show_contextmenu" class="detail_task_card pa-0 ma-0" :ripple="false">
         <v-card-title>
             タスク詳細
         </v-card-title>
@@ -198,11 +198,13 @@ function emit_deleted_tag() {
     max-height: 0 !important;
     min-height: 0 !important;
 }
+
 .task_checkbox_td {
     width: 40px;
     max-width: 40px;
     min-width: 40px;
 }
+
 .task_title_td {
     width: 190px;
     max-width: 190px;

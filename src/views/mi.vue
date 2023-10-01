@@ -26,7 +26,7 @@
                             @errors="write_messages" @copied_task_id="copied_task_id" @added_tag="added_tag"
                             @added_text="added_text" @updated_task="updated_task" @deleted_task="deleted_task"
                             @clicked_task="set_watching_task" @close_board_request="close_board"
-                            @clicked_board="clicked_board_at_sidebar" />
+                            @reload_board_request="update_board" @clicked_board="clicked_board_at_sidebar" />
                     </td>
                 </tr>
             </table>
@@ -476,5 +476,9 @@ body,
     height: 100vh;
     width: 0;
     position: absolute;
+}
+
+.v-theme--light {
+    --v-hover-opacity: 0;
 }
 </style>
