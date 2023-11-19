@@ -174,7 +174,7 @@ function drop(e: DragEvent) {
 .v-card-title {
     z-index: 3000;
 }
-div.v-overlay__content {
+.overlay_wrap div.v-overlay__content {
     position: unset;
     width: 100%;
 }
