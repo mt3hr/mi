@@ -738,6 +738,28 @@ func LaunchServer() error {
 				return
 			}
 		}
+		if (request.TaskInfo.StartInfo.Start != nil && currentStartInfo.Start == nil) ||
+			(request.TaskInfo.StartInfo.Start == nil && currentStartInfo.Start != nil) ||
+			(request.TaskInfo.StartInfo.Start != nil && currentStartInfo.Start != nil && !request.TaskInfo.StartInfo.Start.Equal(*currentStartInfo.Start)) {
+			err := LoadedRepositories.MiRep.AddStartInfo(request.TaskInfo.StartInfo)
+			if err != nil {
+				response.Errors = append(response.Errors, "タスクの更新に失敗しました")
+				response.Errors = append(response.Errors, "タスクの開始情報更新時にエラーが発生しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+		if (request.TaskInfo.EndInfo.End != nil && currentEndInfo.End == nil) ||
+			(request.TaskInfo.EndInfo.End == nil && currentEndInfo.End != nil) ||
+			(request.TaskInfo.EndInfo.End != nil && currentEndInfo.End != nil && !request.TaskInfo.EndInfo.End.Equal(*currentEndInfo.End)) {
+			err := LoadedRepositories.MiRep.AddEndInfo(request.TaskInfo.EndInfo)
+			if err != nil {
+				response.Errors = append(response.Errors, "タスクの更新に失敗しました")
+				response.Errors = append(response.Errors, "タスクの終了情報更新時にエラーが発生しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
 		if request.TaskInfo.BoardInfo.BoardName != currentBoardInfo.BoardName {
 			err := LoadedRepositories.MiRep.AddBoardInfo(request.TaskInfo.BoardInfo)
 			if err != nil {

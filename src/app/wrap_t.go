@@ -40,6 +40,14 @@ func (m *miRepT) GetLatestLimitInfoFromTaskID(ctx context.Context, taskID string
 	return m.rep.GetLatestLimitInfoFromTaskID(ctx, taskID)
 }
 
+func (m *miRepT) GetLatestStartInfoFromTaskID(ctx context.Context, taskID string) (*StartInfo, error) {
+	return m.rep.GetLatestStartInfoFromTaskID(ctx, taskID)
+}
+
+func (m *miRepT) GetLatestEndInfoFromTaskID(ctx context.Context, taskID string) (*EndInfo, error) {
+	return m.rep.GetLatestEndInfoFromTaskID(ctx, taskID)
+}
+
 func (m *miRepT) GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string) (*BoardInfo, error) {
 	return m.rep.GetLatestBoardInfoFromTaskID(ctx, taskID)
 }
@@ -54,6 +62,14 @@ func (m *miRepT) GetTaskTitleInfo(ctx context.Context, taskTitleID string) (*Tas
 
 func (m *miRepT) GetLimitInfo(ctx context.Context, limitInfoID string) (*LimitInfo, error) {
 	return m.rep.GetLimitInfo(ctx, limitInfoID)
+}
+
+func (m *miRepT) GetStartInfo(ctx context.Context, startInfoID string) (*StartInfo, error) {
+	return m.rep.GetStartInfo(ctx, startInfoID)
+}
+
+func (m *miRepT) GetEndInfo(ctx context.Context, endInfoID string) (*EndInfo, error) {
+	return m.rep.GetEndInfo(ctx, endInfoID)
 }
 
 func (m *miRepT) GetBoardInfo(ctx context.Context, boardInfoID string) (*BoardInfo, error) {
@@ -74,6 +90,14 @@ func (m *miRepT) AddTaskTitleInfo(taskTitleInfo *TaskTitleInfo) error {
 
 func (m *miRepT) AddLimitInfo(limitInfo *LimitInfo) error {
 	return m.rep.AddLimitInfo(limitInfo)
+}
+
+func (m *miRepT) AddStartInfo(startInfo *StartInfo) error {
+	return m.rep.AddStartInfo(startInfo)
+}
+
+func (m *miRepT) AddEndInfo(endInfo *EndInfo) error {
+	return m.rep.AddEndInfo(endInfo)
 }
 
 func (m *miRepT) AddBoardInfo(boardInfo *BoardInfo) error {

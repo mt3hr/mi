@@ -24,6 +24,20 @@ CREATE TABLE IF NOT EXISTS LimitInfo (
     LimitTime Text
 );
 
+CREATE TABLE IF NOT EXISTS StartInfo (
+    StartID TEXT PRIMARY KEY,
+    TaskID TEXT NOT NULL,
+    UpdatedTime TEXT NOT NULL,
+    StartTime Text
+);
+
+CREATE TABLE IF NOT EXISTS EndInfo (
+    EndID TEXT PRIMARY KEY,
+    TaskID TEXT NOT NULL,
+    UpdatedTime TEXT NOT NULL,
+    EndTime Text
+);
+
 CREATE TABLE IF NOT EXISTS BoardInfo (
     BoardInfoID TEXT PRIMARY KEY,
     TaskID TEXT NOT NULL,

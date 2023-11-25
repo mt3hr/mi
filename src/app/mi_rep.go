@@ -15,17 +15,23 @@ type MiRep interface {
 	GetLatestCheckStateInfoFromTaskID(ctx context.Context, taskID string) (*CheckStateInfo, error)
 	GetLatestTaskTitleInfoFromTaskID(ctx context.Context, taskID string) (*TaskTitleInfo, error)
 	GetLatestLimitInfoFromTaskID(ctx context.Context, taskID string) (*LimitInfo, error)
+	GetLatestStartInfoFromTaskID(ctx context.Context, taskID string) (*StartInfo, error)
+	GetLatestEndInfoFromTaskID(ctx context.Context, taskID string) (*EndInfo, error)
 	GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string) (*BoardInfo, error)
 
 	GetCheckStateInfo(ctx context.Context, checkStateID string) (*CheckStateInfo, error)
 	GetTaskTitleInfo(ctx context.Context, taskTitleID string) (*TaskTitleInfo, error)
 	GetLimitInfo(ctx context.Context, limitInfoID string) (*LimitInfo, error)
+	GetStartInfo(ctx context.Context, startInfoID string) (*StartInfo, error)
+	GetEndInfo(ctx context.Context, endInfoID string) (*EndInfo, error)
 	GetBoardInfo(ctx context.Context, boardInfoID string) (*BoardInfo, error)
 
 	AddTask(task *Task) error
 	AddCheckStateInfo(checkStateInfo *CheckStateInfo) error
 	AddTaskTitleInfo(taskTitleInfo *TaskTitleInfo) error
 	AddLimitInfo(limitInfo *LimitInfo) error
+	AddStartInfo(startInfo *StartInfo) error
+	AddEndInfo(endInfo *EndInfo) error
 	AddBoardInfo(boardInfo *BoardInfo) error
 
 	GetTasksAtBoard(ctx context.Context, query *SearchTaskQuery) ([]*Task, error)
