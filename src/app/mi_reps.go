@@ -394,6 +394,46 @@ func (m MiReps) GetLimitInfo(ctx context.Context, limitInfoID string) (*LimitInf
 	return nil, fmt.Errorf("limit not found. limitInfoID=%s", limitInfoID)
 }
 
+func (m MiReps) GetStartInfo(ctx context.Context, limitInfoID string) (*StartInfo, error) {
+	startInfos := []*StartInfo{}
+	for _, miRep := range m {
+		limitInfo, err := miRep.GetStartInfo(ctx, limitInfoID)
+		if err != nil {
+			continue
+		}
+		startInfos = append(startInfos, limitInfo)
+	}
+
+	sort.Slice(startInfos, func(i int, j int) bool {
+		return startInfos[i].UpdatedTime.After(startInfos[j].UpdatedTime)
+	})
+	for _, limitInfo := range startInfos {
+		return limitInfo, nil
+	}
+
+	return nil, fmt.Errorf("limit not found. limitInfoID=%s", limitInfoID)
+}
+
+func (m MiReps) GetEndInfo(ctx context.Context, limitInfoID string) (*EndInfo, error) {
+	endInfos := []*EndInfo{}
+	for _, miRep := range m {
+		limitInfo, err := miRep.GetEndInfo(ctx, limitInfoID)
+		if err != nil {
+			continue
+		}
+		endInfos = append(endInfos, limitInfo)
+	}
+
+	sort.Slice(endInfos, func(i int, j int) bool {
+		return endInfos[i].UpdatedTime.After(endInfos[j].UpdatedTime)
+	})
+	for _, limitInfo := range endInfos {
+		return limitInfo, nil
+	}
+
+	return nil, fmt.Errorf("limit not found. limitInfoID=%s", limitInfoID)
+}
+
 func (m MiReps) GetBoardInfo(ctx context.Context, boardInfoID string) (*BoardInfo, error) {
 	boardInfos := []*BoardInfo{}
 	for _, miRep := range m {
