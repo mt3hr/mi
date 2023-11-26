@@ -1,10 +1,10 @@
 SELECT
-    StartID,
+    LimitID,
     TaskID,
     UpdatedTime,
-    StartTime
+    LimitTime
 FROM
-    StartInfo
+    LimitInfo
 WHERE
     TaskID = '%s'
 ORDER BY

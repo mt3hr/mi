@@ -618,6 +618,8 @@ func LaunchServer() error {
 		if request.TaskInfo.Task.TaskID != request.TaskInfo.TaskTitleInfo.TaskID ||
 			request.TaskInfo.Task.TaskID != request.TaskInfo.CheckStateInfo.TaskID ||
 			request.TaskInfo.Task.TaskID != request.TaskInfo.LimitInfo.TaskID ||
+			request.TaskInfo.Task.TaskID != request.TaskInfo.StartInfo.TaskID ||
+			request.TaskInfo.Task.TaskID != request.TaskInfo.EndInfo.TaskID ||
 			request.TaskInfo.Task.TaskID != request.TaskInfo.BoardInfo.TaskID {
 			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
 			response.Errors = append(response.Errors, "TaskIDが一致しません")
@@ -650,6 +652,20 @@ func LaunchServer() error {
 		if err != nil {
 			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
 			response.Errors = append(response.Errors, "期限情報の追加に失敗しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = LoadedRepositories.MiRep.AddStartInfo(request.TaskInfo.StartInfo)
+		if err != nil {
+			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
+			response.Errors = append(response.Errors, "開始情報の追加に失敗しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = LoadedRepositories.MiRep.AddEndInfo(request.TaskInfo.EndInfo)
+		if err != nil {
+			response.Errors = append(response.Errors, "タスク情報の追加に失敗しました")
+			response.Errors = append(response.Errors, "終了情報の追加に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -698,6 +714,20 @@ func LaunchServer() error {
 		if err != nil {
 			response.Errors = append(response.Errors, "タスクの更新に失敗しました")
 			response.Errors = append(response.Errors, "タスクの期限情報取得時にエラーが発生しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		currentStartInfo, err := LoadedRepositories.MiReps.GetLatestStartInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
+		if err != nil {
+			response.Errors = append(response.Errors, "タスクの更新に失敗しました")
+			response.Errors = append(response.Errors, "タスクの開始情報取得時にエラーが発生しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		currentEndInfo, err := LoadedRepositories.MiReps.GetLatestEndInfoFromTaskID(r.Context(), request.TaskInfo.Task.TaskID)
+		if err != nil {
+			response.Errors = append(response.Errors, "タスクの更新に失敗しました")
+			response.Errors = append(response.Errors, "タスクの終了情報取得時にエラーが発生しました")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

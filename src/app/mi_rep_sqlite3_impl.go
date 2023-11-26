@@ -248,7 +248,7 @@ func Prepare() {
 	if err != nil {
 		panic(err)
 	}
-	sqlAddEndInfo = string(sqlAddStartInfoB)
+	sqlAddStartInfo = string(sqlAddStartInfoB)
 	sqlAddEndInfoB, err := EmbedDir.ReadFile("mi/mi/embed/sql/AddEndInfo.sql")
 	if err != nil {
 		panic(err)
@@ -572,66 +572,66 @@ func (m *miRepSQLiteImpl) GetLatestStartInfoFromTaskID(ctx context.Context, task
 	statement := fmt.Sprintf(sqlGetLatestStartInfoFromTaskID, escapeSQLite(taskID))
 	row := m.db.QueryRowContext(ctx, statement)
 
-	limitInfo := &StartInfo{}
+	startInfo := &StartInfo{}
 	updatedTimeStr := ""
-	limitTimeStr := sql.NullString{}
-	err := row.Scan(&limitInfo.StartID,
-		&limitInfo.TaskID,
+	startTimeStr := sql.NullString{}
+	err := row.Scan(&startInfo.StartID,
+		&startInfo.TaskID,
 		&updatedTimeStr,
-		&limitTimeStr)
+		&startTimeStr)
 	if err != nil {
-		err = fmt.Errorf("error at get limit info %s: %w", taskID, err)
+		err = fmt.Errorf("error at get start info %s: %w", taskID, err)
 		return nil, err
 	}
 
-	limitInfo.UpdatedTime, err = time.Parse(TimeLayout, updatedTimeStr)
+	startInfo.UpdatedTime, err = time.Parse(TimeLayout, updatedTimeStr)
 	if err != nil {
 		err = fmt.Errorf("error at parse time %s: %w", taskID, err)
 		return nil, err
 	}
 
-	if limitTimeStr.Valid {
-		limitInfo.Start = &time.Time{}
-		*limitInfo.Start, err = time.Parse(TimeLayout, limitTimeStr.String)
+	if startTimeStr.Valid {
+		startInfo.Start = &time.Time{}
+		*startInfo.Start, err = time.Parse(TimeLayout, startTimeStr.String)
 		if err != nil {
-			err = fmt.Errorf("error at parse limit time %s: %w", taskID, err)
+			err = fmt.Errorf("error at parse start time %s: %w", taskID, err)
 			return nil, err
 		}
 	}
-	return limitInfo, nil
+	return startInfo, nil
 }
 
 func (m *miRepSQLiteImpl) GetLatestEndInfoFromTaskID(ctx context.Context, taskID string) (*EndInfo, error) {
 	statement := fmt.Sprintf(sqlGetLatestEndInfoFromTaskID, escapeSQLite(taskID))
 	row := m.db.QueryRowContext(ctx, statement)
 
-	limitInfo := &EndInfo{}
+	endInfo := &EndInfo{}
 	updatedTimeStr := ""
-	limitTimeStr := sql.NullString{}
-	err := row.Scan(&limitInfo.EndID,
-		&limitInfo.TaskID,
+	endTimeStr := sql.NullString{}
+	err := row.Scan(&endInfo.EndID,
+		&endInfo.TaskID,
 		&updatedTimeStr,
-		&limitTimeStr)
+		&endTimeStr)
 	if err != nil {
-		err = fmt.Errorf("error at get limit info %s: %w", taskID, err)
+		err = fmt.Errorf("error at get end info %s: %w", taskID, err)
 		return nil, err
 	}
 
-	limitInfo.UpdatedTime, err = time.Parse(TimeLayout, updatedTimeStr)
+	endInfo.UpdatedTime, err = time.Parse(TimeLayout, updatedTimeStr)
 	if err != nil {
 		err = fmt.Errorf("error at parse time %s: %w", taskID, err)
 		return nil, err
 	}
 
-	if limitTimeStr.Valid {
-		limitInfo.End = &time.Time{}
-		*limitInfo.End, err = time.Parse(TimeLayout, limitTimeStr.String)
+	if endTimeStr.Valid {
+		endInfo.End = &time.Time{}
+		*endInfo.End, err = time.Parse(TimeLayout, endTimeStr.String)
 		if err != nil {
-			err = fmt.Errorf("error at parse limit time %s: %w", taskID, err)
+			err = fmt.Errorf("error at parse end time %s: %w", taskID, err)
 			return nil, err
 		}
 	}
-	return limitInfo, nil
+	return endInfo, nil
 }
 
 func (m *miRepSQLiteImpl) GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string) (*BoardInfo, error) {
@@ -873,6 +873,14 @@ func (m *miRepSQLiteImpl) GetTaskInfo(ctx context.Context, taskID string) (*Task
 		return nil, err
 	}
 	taskInfo.LimitInfo, err = m.GetLatestLimitInfoFromTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	taskInfo.StartInfo, err = m.GetLatestStartInfoFromTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	taskInfo.EndInfo, err = m.GetLatestEndInfoFromTaskID(ctx, taskID)
 	if err != nil {
 		return nil, err
 	}

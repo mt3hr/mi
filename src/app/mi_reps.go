@@ -274,6 +274,46 @@ func (m MiReps) GetLatestLimitInfoFromTaskID(ctx context.Context, taskID string)
 	return nil, fmt.Errorf("limit not found. taskID=%s", taskID)
 }
 
+func (m MiReps) GetLatestStartInfoFromTaskID(ctx context.Context, taskID string) (*StartInfo, error) {
+	startInfos := []*StartInfo{}
+	for _, miRep := range m {
+		startInfo, err := miRep.GetLatestStartInfoFromTaskID(ctx, taskID)
+		if err != nil {
+			continue
+		}
+		startInfos = append(startInfos, startInfo)
+	}
+
+	sort.Slice(startInfos, func(i int, j int) bool {
+		return startInfos[i].UpdatedTime.After(startInfos[j].UpdatedTime)
+	})
+	for _, startInfo := range startInfos {
+		return startInfo, nil
+	}
+
+	return nil, fmt.Errorf("start not found. taskID=%s", taskID)
+}
+
+func (m MiReps) GetLatestEndInfoFromTaskID(ctx context.Context, taskID string) (*EndInfo, error) {
+	endInfos := []*EndInfo{}
+	for _, miRep := range m {
+		endInfo, err := miRep.GetLatestEndInfoFromTaskID(ctx, taskID)
+		if err != nil {
+			continue
+		}
+		endInfos = append(endInfos, endInfo)
+	}
+
+	sort.Slice(endInfos, func(i int, j int) bool {
+		return endInfos[i].UpdatedTime.After(endInfos[j].UpdatedTime)
+	})
+	for _, endInfo := range endInfos {
+		return endInfo, nil
+	}
+
+	return nil, fmt.Errorf("end not found. taskID=%s", taskID)
+}
+
 func (m MiReps) GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string) (*BoardInfo, error) {
 	boardInfos := []*BoardInfo{}
 	for _, miRep := range m {
@@ -471,6 +511,14 @@ func (m MiReps) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, erro
 		return nil, err
 	}
 	taskInfo.LimitInfo, err = m.GetLatestLimitInfoFromTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	taskInfo.StartInfo, err = m.GetLatestStartInfoFromTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	taskInfo.EndInfo, err = m.GetLatestEndInfoFromTaskID(ctx, taskID)
 	if err != nil {
 		return nil, err
 	}

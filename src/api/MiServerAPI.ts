@@ -147,6 +147,10 @@ export default class MiServerAPI {
         response.task_info.check_state_info.updated_time = new Date(response.task_info.check_state_info.updated_time)
         response.task_info.limit_info.updated_time = new Date(response.task_info.limit_info.updated_time)
         response.task_info.limit_info.limit = response.task_info.limit_info.limit ? new Date(response.task_info.limit_info.limit) : null
+        response.task_info.start_info.updated_time = new Date(response.task_info.start_info.updated_time)
+        response.task_info.start_info.start = response.task_info.start_info.start ? new Date(response.task_info.start_info.start) : null
+        response.task_info.end_info.updated_time = new Date(response.task_info.end_info.updated_time)
+        response.task_info.end_info.end = response.task_info.end_info.end ? new Date(response.task_info.end_info.end) : null
         response.task_info.task.created_time = new Date(response.task_info.task.created_time)
         response.task_info.task_title_info.updated_time = new Date(response.task_info.task_title_info.updated_time)
         return response
@@ -168,10 +172,15 @@ export default class MiServerAPI {
                 response.boards_tasks[i].check_state_info.updated_time = new Date(response.boards_tasks[i].check_state_info.updated_time)
                 response.boards_tasks[i].limit_info.updated_time = new Date(response.boards_tasks[i].limit_info.updated_time)
                 response.boards_tasks[i].limit_info.limit = response.boards_tasks[i].limit_info.limit ? new Date(response.boards_tasks[i].limit_info.limit!) : null
+                response.boards_tasks[i].start_info.updated_time = new Date(response.boards_tasks[i].start_info.updated_time)
+                response.boards_tasks[i].start_info.start = response.boards_tasks[i].start_info.start ? new Date(response.boards_tasks[i].start_info.start!) : null
+                response.boards_tasks[i].end_info.updated_time = new Date(response.boards_tasks[i].end_info.updated_time)
+                response.boards_tasks[i].end_info.end = response.boards_tasks[i].end_info.end ? new Date(response.boards_tasks[i].end_info.end!) : null
                 response.boards_tasks[i].task.created_time = new Date(response.boards_tasks[i].task.created_time)
                 response.boards_tasks[i].task_title_info.updated_time = new Date(response.boards_tasks[i].task_title_info.updated_time)
             }
         }
+        console.log(response)
         return response
     }
     public async add_tag(add_tag_request: AddTagRequest): Promise<AddTagResponse> {

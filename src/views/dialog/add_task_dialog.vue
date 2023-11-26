@@ -15,9 +15,36 @@
                         ref="input_new_board_name_dialog_ref" />
                 </v-col>
             </v-row>
-            <v-checkbox v-model="has_limit" :label="'期日'" />
-            <input class="input_date" type="date" v-if="has_limit" v-model="limit_date" />
-            <input class="input_time" type="time" v-if="has_limit" v-model="limit_time" />
+            <v-row>
+                <v-col cols="auto">
+                    <v-checkbox v-model="has_limit" :label="'期日'" />
+                </v-col>
+                <v-col cols="auto">
+                    <input class="input_date" type="date" v-if="has_limit" v-model="limit_date" />
+                    <br>
+                    <input class="input_time" type="time" v-if="has_limit" v-model="limit_time" />
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-col cols="auto">
+                    <v-checkbox v-model="has_start" :label="'開始'" />
+                </v-col>
+                <v-col cols="auto">
+                    <input class="input_date" type="date" v-if="has_start" v-model="start_date" />
+                    <br>
+                    <input class="input_time" type="time" v-if="has_start" v-model="start_time" />
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-col cols="auto">
+                    <v-checkbox v-model="has_end" :label="'終了'" />
+                </v-col>
+                <v-col cols="auto">
+                    <input class="input_date" type="date" v-if="has_end" v-model="end_date" />
+                    <br>
+                    <input class="input_time" type="time" v-if="has_end" v-model="end_time" />
+                </v-col>
+            </v-row>
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
@@ -64,8 +91,14 @@ const task_title: Ref<string> = ref("")
 const board_name: Ref<string> = ref(props.option!.default_board_name)
 const is_show: Ref<boolean> = ref(false)
 const has_limit: Ref<boolean> = ref(false)
-const limit_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
+const limit_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
 const limit_time: Ref<string> = ref(`00:00:00`)
+const has_start: Ref<boolean> = ref(false)
+const start_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
+const start_time: Ref<string> = ref(`00:00:00`)
+const has_end: Ref<boolean> = ref(false)
+const end_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
+const end_time: Ref<string> = ref(`00:00:00`)
 
 const input_new_board_name_dialog_ref = ref<InstanceType<typeof input_new_board_name_dialog> | null>(null);
 
@@ -122,8 +155,14 @@ function clear_fields() {
     const now = new Date(Date.now())
     task_title.value = ""
     has_limit.value = false
-    limit_date.value = `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    has_start.value = false
+    has_end.value = false
+    limit_date.value = `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
     limit_time.value = `00:00:00`
+    start_date.value = `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    start_time.value = `00:00:00`
+    end_date.value = `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    end_time.value = `00:00:00`
 }
 function show_input_new_board_name_dialog() {
     input_new_board_name_dialog_ref.value?.show()
@@ -149,10 +188,26 @@ function construct_task_info() {
     new_task_info.limit_info.limit_id = generate_uuid()
     new_task_info.limit_info.task_id = task_id
     new_task_info.limit_info.updated_time = now
+    new_task_info.start_info.start_id = generate_uuid()
+    new_task_info.start_info.task_id = task_id
+    new_task_info.start_info.updated_time = now
+    new_task_info.end_info.end_id = generate_uuid()
+    new_task_info.end_info.task_id = task_id
+    new_task_info.end_info.updated_time = now
     if (has_limit.value) {
         new_task_info.limit_info.limit = new Date(Date.parse(`${limit_date.value} ${limit_time.value}:00`))
     } else {
         new_task_info.limit_info.limit = null
+    }
+    if (has_start.value) {
+        new_task_info.start_info.start = new Date(Date.parse(`${start_date.value} ${start_time.value}:00`))
+    } else {
+        new_task_info.start_info.start = null
+    }
+    if (has_end.value) {
+        new_task_info.end_info.end = new Date(Date.parse(`${end_date.value} ${end_time.value}:00`))
+    } else {
+        new_task_info.end_info.end = null
     }
     new_task_info.board_info.board_info_id = generate_uuid()
     new_task_info.board_info.task_id = task_id
@@ -173,6 +228,7 @@ function emit_added_task(added_task_info: TaskInfo) {
 .input_date {
     width: 120px;
 }
+
 .input_time {
     width: 120px;
 }

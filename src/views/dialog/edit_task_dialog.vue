@@ -15,9 +15,36 @@
                         ref="input_new_board_name_dialog_ref" />
                 </v-col>
             </v-row>
-            <v-checkbox v-model="has_limit" :label="'期日'" />
-            <input class="input_date" type="date" v-if="has_limit" v-model="limit_date" />
-            <input class="input_time" type="time" v-if="has_limit" v-model="limit_time" />
+            <v-row>
+                <v-col cols="auto">
+                    <v-checkbox v-model="has_limit" :label="'期日'" />
+                </v-col>
+                <v-col cols="auto">
+                    <input class="input_date" type="date" v-if="has_limit" v-model="limit_date" />
+                    <br>
+                    <input class="input_time" type="time" v-if="has_limit" v-model="limit_time" />
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-col cols="auto">
+                    <v-checkbox v-model="has_start" :label="'開始'" />
+                </v-col>
+                <v-col cols="auto">
+                    <input class="input_date" type="date" v-if="has_start" v-model="start_date" />
+                    <br>
+                    <input class="input_time" type="time" v-if="has_start" v-model="start_time" />
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-col cols="auto">
+                    <v-checkbox v-model="has_end" :label="'終了'" />
+                </v-col>
+                <v-col cols="auto">
+                    <input class="input_date" type="date" v-if="has_end" v-model="end_date" />
+                    <br>
+                    <input class="input_time" type="time" v-if="has_end" v-model="end_time" />
+                </v-col>
+            </v-row>
             <v-card-actions>
                 <v-row>
                     <v-col cols="auto">
@@ -67,6 +94,12 @@ const has_limit: Ref<boolean> = ref(!(!props.task_info.limit_info.limit))
 const limit_date: Ref<string> = ref(has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${(props.task_info.limit_info.limit!.getMonth() + 1).toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
 const limit_time: Ref<string> = ref(has_limit.value ? `${props.task_info.limit_info.limit!.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getSeconds().toString().padStart(2, '0')}` : "00:00:00")
 const input_new_board_name_dialog_ref = ref<InstanceType<typeof input_new_board_name_dialog> | null>(null);
+const has_start: Ref<boolean> = ref(false)
+const start_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
+const start_time: Ref<string> = ref(`00:00:00`)
+const has_end: Ref<boolean> = ref(false)
+const end_date: Ref<string> = ref(`${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`)
+const end_time: Ref<string> = ref(`00:00:00`)
 
 defineExpose({ show })
 
@@ -113,6 +146,12 @@ function show() {
     has_limit.value = !(!props.task_info.limit_info.limit)
     limit_date.value = has_limit.value ? `${props.task_info.limit_info.limit!.getFullYear().toString().padStart(4, '0')}-${(props.task_info.limit_info.limit!.getMonth() + 1).toString().padStart(2, '0')}-${props.task_info.limit_info.limit!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
     limit_time.value = has_limit.value ? `${props.task_info.limit_info.limit!.getHours().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getMinutes().toString().padStart(2, '0')}:${props.task_info.limit_info.limit!.getSeconds().toString().padStart(2, '0')}` : "00:00:00"
+    has_start.value = !(!props.task_info.start_info.start)
+    start_date.value = has_start.value ? `${props.task_info.start_info.start!.getFullYear().toString().padStart(4, '0')}-${(props.task_info.start_info.start!.getMonth() + 1).toString().padStart(2, '0')}-${props.task_info.start_info.start!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    start_time.value = has_start.value ? `${props.task_info.start_info.start!.getHours().toString().padStart(2, '0')}:${props.task_info.start_info.start!.getMinutes().toString().padStart(2, '0')}:${props.task_info.start_info.start!.getSeconds().toString().padStart(2, '0')}` : "00:00:00"
+    has_end.value = !(!props.task_info.end_info.end)
+    end_date.value = has_end.value ? `${props.task_info.end_info.end!.getFullYear().toString().padStart(4, '0')}-${(props.task_info.end_info.end!.getMonth() + 1).toString().padStart(2, '0')}-${props.task_info.end_info.end!.getDate().toString().padStart(2, '0')}` : `${now.getFullYear().toString().padStart(4, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    end_time.value = has_end.value ? `${props.task_info.end_info.end!.getHours().toString().padStart(2, '0')}:${props.task_info.end_info.end!.getMinutes().toString().padStart(2, '0')}:${props.task_info.end_info.end!.getSeconds().toString().padStart(2, '0')}` : "00:00:00"
     update_board_names().then(() => is_show.value = true)
 }
 function show_input_new_board_name_dialog() {
@@ -139,10 +178,26 @@ function construct_task_info() {
     new_task_info.limit_info.limit_id = generate_uuid()
     new_task_info.limit_info.task_id = task_id
     new_task_info.limit_info.updated_time = now
+    new_task_info.start_info.start_id = generate_uuid()
+    new_task_info.start_info.task_id = task_id
+    new_task_info.start_info.updated_time = now
+    new_task_info.end_info.end_id = generate_uuid()
+    new_task_info.end_info.task_id = task_id
+    new_task_info.end_info.updated_time = now
     if (has_limit.value) {
         new_task_info.limit_info.limit = new Date(Date.parse(`${limit_date.value} ${limit_time.value}:00`))
     } else {
         new_task_info.limit_info.limit = null
+    }
+    if (has_start.value) {
+        new_task_info.start_info.start = new Date(Date.parse(`${start_date.value} ${start_time.value}:00`))
+    } else {
+        new_task_info.start_info.start = null
+    }
+    if (has_end.value) {
+        new_task_info.end_info.end = new Date(Date.parse(`${end_date.value} ${end_time.value}:00`))
+    } else {
+        new_task_info.end_info.end = null
     }
     new_task_info.board_info.board_info_id = generate_uuid()
     new_task_info.board_info.task_id = task_id
