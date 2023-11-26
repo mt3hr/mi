@@ -1,6 +1,6 @@
 <template>
-    <v-card :id="task_info.task.task_id" @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task" class="board_task_card pa-0 ma-0"
-        draggable="true" @dragstart="dragstart">
+    <v-card :id="task_info.task.task_id" @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task"
+        class="board_task_card pa-0 ma-0" draggable="true" @dragstart="dragstart">
         <table class="task_title_line_table">
             <tr>
                 <td align="left" class="task_checkbox_td">
@@ -9,10 +9,37 @@
                 <td class="task_title_td pa-0 ma-0" align="left">
                     <p>{{ title }}</p>
                 </td>
-                <td class="limit_td" align="right">
-                    <small>
-                        <p v-if="limit">期限: {{ limit.toLocaleString() }}</p>
-                    </small>
+                <td>
+                    <table>
+                        <tr>
+                            <td v-if="sort_type === SortType.LimitTimeAsc" class="time_td" align="right">
+                                <small>
+                                    <p v-if="limit">期限: {{ limit.toLocaleString() }}</p>
+                                </small>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td v-if="sort_type === SortType.StartTimeDesc" class="time_td" align="right">
+                                <small>
+                                    <p v-if="start">開始: {{ start.toLocaleString() }}</p>
+                                </small>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td v-if="sort_type === SortType.EndTimeDesc" class="time_td" align="right">
+                                <small>
+                                    <p v-if="end">終了: {{ end.toLocaleString() }}</p>
+                                </small>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td v-if="sort_type === SortType.CreatedTimeDesc" class="time_td" align="right">
+                                <small>
+                                    <p v-if="created_time">作成: {{ created_time.toLocaleString() }}</p>
+                                </small>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
             </tr>
         </table>
@@ -30,9 +57,11 @@ import UpdateTaskRequest from '@/api/UpdateTaskRequest';
 import { Ref, ref, watch, nextTick } from 'vue';
 import task_contextmenu from './task_contextmenu.vue';
 import generate_uuid from '@/generate_uuid';
+import SortType from '@/api/data_struct/SortType';
 
 interface Props {
     task_info: TaskInfo
+    sort_type: SortType
 }
 
 const props = defineProps<Props>()
@@ -48,7 +77,10 @@ const emits = defineEmits<{
 
 let check: Ref<boolean> = ref(props.task_info.check_state_info.is_checked)
 let title: Ref<string> = ref(props.task_info.task_title_info.title)
+let created_time: Ref<Date | null> = ref(props.task_info.task.created_time)
 let limit: Ref<Date | null> = ref(props.task_info.limit_info.limit)
+let start: Ref<Date | null> = ref(props.task_info.start_info.start)
+let end: Ref<Date | null> = ref(props.task_info.end_info.end)
 let x_contextmenu: Ref<number> = ref(0)
 let y_contextmenu: Ref<number> = ref(0)
 const task_context_menu_ref = ref<InstanceType<typeof task_contextmenu> | null>(null);
@@ -56,7 +88,10 @@ const task_context_menu_ref = ref<InstanceType<typeof task_contextmenu> | null>(
 watch(() => props.task_info, () => {
     check.value = props.task_info.check_state_info.is_checked
     title.value = props.task_info.task_title_info.title
+    created_time.value = props.task_info.task.created_time
     limit.value = props.task_info.limit_info.limit
+    start.value = props.task_info.start_info.start
+    end.value = props.task_info.end_info.end
 })
 
 
@@ -68,6 +103,8 @@ watch(check, () => {
     new_task_info.task_title_info = props.task_info.task_title_info
     new_task_info.check_state_info = new CheckStateInfo()
     new_task_info.limit_info = props.task_info.limit_info
+    new_task_info.start_info = props.task_info.start_info
+    new_task_info.end_info = props.task_info.end_info
     new_task_info.board_info = props.task_info.board_info
 
     new_task_info.check_state_info.check_state_id = generate_uuid()
@@ -125,19 +162,23 @@ function dragstart(e: DragEvent) {
     max-height: 0 !important;
     min-height: 0 !important;
 }
+
 .task_checkbox_td {
     width: 40px;
     max-width: 40px;
     min-width: 40px;
 }
+
 .task_title_td {
     width: 190px;
     max-width: 190px;
     min-width: 190px;
 }
-.limit_td {
+
+.time_td {
     padding-right: 30px;
 }
+
 #app {
     overflow-y: hidden;
     max-height: 100vh;

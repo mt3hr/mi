@@ -958,6 +958,52 @@ func LaunchServer() error {
 			})
 
 			boardsTaskInfos = append(hasLimitTaskInfos, noLimitTaskInfos...)
+		case mi.StartTimeDesc:
+			hasStartTaskInfos := []*mi.TaskInfo{}
+			noStartTaskInfos := []*mi.TaskInfo{}
+
+			for _, taskInfo := range boardsTaskInfos {
+				if taskInfo.StartInfo.Start == nil {
+					noStartTaskInfos = append(noStartTaskInfos, taskInfo)
+				} else {
+					hasStartTaskInfos = append(hasStartTaskInfos, taskInfo)
+				}
+			}
+
+			sort.Slice(hasStartTaskInfos, func(i int, j int) bool {
+				startI := *hasStartTaskInfos[i].StartInfo.Start
+				startJ := *hasStartTaskInfos[j].StartInfo.Start
+				return startI.Before(startJ)
+			})
+
+			sort.Slice(noStartTaskInfos, func(i int, j int) bool {
+				return noStartTaskInfos[i].Task.CreatedTime.After(noStartTaskInfos[j].Task.CreatedTime)
+			})
+
+			boardsTaskInfos = append(hasStartTaskInfos, noStartTaskInfos...)
+		case mi.EndTimeDesc:
+			hasEndTaskInfos := []*mi.TaskInfo{}
+			noEndTaskInfos := []*mi.TaskInfo{}
+
+			for _, taskInfo := range boardsTaskInfos {
+				if taskInfo.EndInfo.End == nil {
+					noEndTaskInfos = append(noEndTaskInfos, taskInfo)
+				} else {
+					hasEndTaskInfos = append(hasEndTaskInfos, taskInfo)
+				}
+			}
+
+			sort.Slice(hasEndTaskInfos, func(i int, j int) bool {
+				endI := *hasEndTaskInfos[i].EndInfo.End
+				endJ := *hasEndTaskInfos[j].EndInfo.End
+				return endI.Before(endJ)
+			})
+
+			sort.Slice(noEndTaskInfos, func(i int, j int) bool {
+				return noEndTaskInfos[i].Task.CreatedTime.After(noEndTaskInfos[j].Task.CreatedTime)
+			})
+
+			boardsTaskInfos = append(hasEndTaskInfos, noEndTaskInfos...)
 		}
 
 		response.BoardsTasks = boardsTaskInfos

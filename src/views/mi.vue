@@ -23,10 +23,11 @@
                     <td class="board_wrap pa-0 ma-0" cols="auto" v-for="board_name in opened_board_names" :key="board_name">
                         <board class="pa-0 ma-0 board" :board_name="board_name" :selected_board_name="watching_board_name"
                             :task_infos="task_infos_map[board_name]" :loading="loading_map[board_name]"
-                            @errors="write_messages" @copied_task_id="copied_task_id" @added_tag="added_tag"
-                            @added_text="added_text" @updated_task="updated_task" @deleted_task="deleted_task"
-                            @clicked_task="set_watching_task" @close_board_request="close_board"
-                            @reload_board_request="update_board" @clicked_board="clicked_board_at_sidebar" />
+                            :sort_type="sort_type_map[board_name]" @errors="write_messages" @copied_task_id="copied_task_id"
+                            @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
+                            @deleted_task="deleted_task" @clicked_task="set_watching_task"
+                            @close_board_request="close_board" @reload_board_request="update_board"
+                            @clicked_board="clicked_board_at_sidebar" />
                     </td>
                 </tr>
             </table>
@@ -99,6 +100,7 @@ const add_task_dialog_ref = ref<InstanceType<typeof add_task_dialog> | null>(nul
 const detail_task_ref = ref<InstanceType<typeof detail_task> | null>(null);
 const calendar_ref = ref<InstanceType<typeof Calendar> | null>(null);
 const query_map: Ref<any> = ref({})
+const sort_type_map: Ref<any> = ref({})
 const abort_controller_map: Ref<any> = ref({})
 const task_infos_map: Ref<any> = ref({})
 const loading_map: Ref<any> = ref({})
@@ -349,6 +351,7 @@ function save_board_search_query(board_name: string, query: TaskSearchQuery) {
     if (sort_type_str == NaN.toString()) {
         sort_type_str = SortType.CreatedTimeDesc.valueOf().toString()
     }
+    sort_type_map.value[board_name] = query.sort_type
     window.localStorage.setItem(`board_${board_name}_check_state`, query.check_state.toString())
     window.localStorage.setItem(`board_${board_name}_sort_type`, query.sort_type.toString())
 }
@@ -380,6 +383,24 @@ function scroll_to_date(date: Date) {
                     continue
                 }
                 if (task_info.limit_info.limit.getTime() >= date.getTime()) {
+                    scroll_target_task_id = task_info.task.task_id
+                    break
+                }
+            }
+            if (calendar_sort_mode.value == SortType.StartTimeDesc) {
+                if (!task_info.start_info.start) {
+                    continue
+                }
+                if (task_info.start_info.start.getTime() >= date.getTime()) {
+                    scroll_target_task_id = task_info.task.task_id
+                    break
+                }
+            }
+            if (calendar_sort_mode.value == SortType.EndTimeDesc) {
+                if (!task_info.end_info.end) {
+                    continue
+                }
+                if (task_info.end_info.end.getTime() >= date.getTime()) {
                     scroll_target_task_id = task_info.task.task_id
                     break
                 }

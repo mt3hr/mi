@@ -17,8 +17,16 @@ sort_type_created_time_desc.value = SortType.CreatedTimeDesc
 const sort_type_limit_time_asc = new SortTypeSelectModel()
 sort_type_limit_time_asc.title = "期限順"
 sort_type_limit_time_asc.value = SortType.LimitTimeAsc
+const sort_type_start_time_desc = new SortTypeSelectModel()
+sort_type_start_time_desc.title = "開始日時順"
+sort_type_start_time_desc.value = SortType.StartTimeDesc
+const sort_type_end_time_desc = new SortTypeSelectModel()
+sort_type_end_time_desc.title = "終了日時順"
+sort_type_end_time_desc.value = SortType.EndTimeDesc
 sort_type_select_model.push(sort_type_created_time_desc)
 sort_type_select_model.push(sort_type_limit_time_asc)
+sort_type_select_model.push(sort_type_start_time_desc)
+sort_type_select_model.push(sort_type_end_time_desc)
 
 const emits = defineEmits<{
     (e: 'errors', errors: Array<string>): void

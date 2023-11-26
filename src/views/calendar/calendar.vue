@@ -67,6 +67,26 @@ function update_calendar() {
                 }
                 events_map[`${limit_time.getFullYear().toString().padStart(4, '0')}-${(limit_time.getMonth() + 1).toString().padStart(2, '0')}-${limit_time.getDate().toString().padStart(2, '0')}`] += 1
             }
+            else if (props.mode == SortType.StartTimeDesc) {
+                const start_time = taskinfo.start_info.start
+                if (!start_time) {
+                    return
+                }
+                if (!events_map[`${start_time.getFullYear().toString().padStart(4, '0')}-${(start_time.getMonth() + 1).toString().padStart(2, '0')}-${start_time.getDate().toString().padStart(2, '0')}`]) {
+                    events_map[`${start_time.getFullYear().toString().padStart(4, '0')}-${(start_time.getMonth() + 1).toString().padStart(2, '0')}-${start_time.getDate().toString().padStart(2, '0')}`] = 0
+                }
+                events_map[`${start_time.getFullYear().toString().padStart(4, '0')}-${(start_time.getMonth() + 1).toString().padStart(2, '0')}-${start_time.getDate().toString().padStart(2, '0')}`] += 1
+            }
+            else if (props.mode == SortType.EndTimeDesc) {
+                const end_time = taskinfo.end_info.end
+                if (!end_time) {
+                    return
+                }
+                if (!events_map[`${end_time.getFullYear().toString().padStart(4, '0')}-${(end_time.getMonth() + 1).toString().padStart(2, '0')}-${end_time.getDate().toString().padStart(2, '0')}`]) {
+                    events_map[`${end_time.getFullYear().toString().padStart(4, '0')}-${(end_time.getMonth() + 1).toString().padStart(2, '0')}-${end_time.getDate().toString().padStart(2, '0')}`] = 0
+                }
+                events_map[`${end_time.getFullYear().toString().padStart(4, '0')}-${(end_time.getMonth() + 1).toString().padStart(2, '0')}-${end_time.getDate().toString().padStart(2, '0')}`] += 1
+            }
         });
         Object.keys(events_map).forEach(key => {
             events.push({

@@ -19,9 +19,9 @@
         <v-card-item>
             <div>
                 <board_task v-for="task_info in task_infos" :key="task_info.task.task_id" :task_info="task_info"
-                    @errors="emit_errors" @copied_task_id="emit_copied_task_id" @added_tag="emit_added_tag"
-                    @added_text="emit_added_text" @updated_task="emit_updated_task" @deleted_task="emit_deleted_task"
-                    @clicked_task="emit_clicked_task" />
+                    :sort_type="sort_type" @errors="emit_errors" @copied_task_id="emit_copied_task_id"
+                    @added_tag="emit_added_tag" @added_text="emit_added_text" @updated_task="emit_updated_task"
+                    @deleted_task="emit_deleted_task" @clicked_task="emit_clicked_task" />
                 <div class="overlay_wrap">
                     <v-overlay v-model="is_loading" contained :persistent="true">
                         <div class="progress_overlay">
@@ -42,11 +42,13 @@ import BoardInfo from '@/api/data_struct/BoardInfo';
 import generate_uuid from '@/generate_uuid';
 import MiServerAPI from '@/api/MiServerAPI';
 import UpdateTaskRequest from '@/api/UpdateTaskRequest';
+import SortType from '@/api/data_struct/SortType';
 
 interface Props {
     task_infos: Array<TaskInfo>
     board_name: string
     selected_board_name: string | null
+    sort_type: SortType
     loading: boolean
 }
 
@@ -174,6 +176,7 @@ function drop(e: DragEvent) {
 .v-card-title {
     z-index: 3000;
 }
+
 .overlay_wrap div.v-overlay__content {
     position: unset;
     width: 100%;

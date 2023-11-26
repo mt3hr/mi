@@ -180,7 +180,6 @@ export default class MiServerAPI {
                 response.boards_tasks[i].task_title_info.updated_time = new Date(response.boards_tasks[i].task_title_info.updated_time)
             }
         }
-        console.log(response)
         return response
     }
     public async add_tag(add_tag_request: AddTagRequest): Promise<AddTagResponse> {
