@@ -43,8 +43,8 @@
                     </td>
                     <td class="pa-0 ma-0">
                         <calendar v-show="is_show_calendar_view" :mode="calendar_sort_mode"
-                            :task_infos="task_infos_map[watching_board_name!]" @errors="write_messages"
-                            @clicked_date="scroll_to_date" ref="calendar_ref" />
+                            :task_infos="watching_board_name ? task_infos_map[watching_board_name] : new Array<TaskInfo>()"
+                            @errors="write_messages" @clicked_date="scroll_to_date" ref="calendar_ref" />
                     </td>
                 </tr>
             </table>
@@ -191,6 +191,19 @@ function update_board(board_name: string) {
         .catch((err) => {
             return // DOMException: The user aborted a request.が飛んで邪魔なので握りつぶす
         })
+
+}
+function update_all_board() {
+    const api = new MiServerAPI()
+    let opened_all_board = false
+    opened_board_names.value.forEach(opened_board_name => {
+        if (opened_board_name == api.all_board_name()) {
+            opened_all_board = true
+        }
+    })
+    if (opened_all_board) {
+        update_board(api.all_board_name())
+    }
 }
 function close_board(board_name: string) {
     task_infos_map.value[board_name] = undefined
@@ -206,6 +219,7 @@ function close_board(board_name: string) {
     }
     opened_board_names.value.splice(opened_board_names_index, 1)
     query_map.value[board_name] = undefined
+    task_infos_map.value[board_name] = undefined
     if (watching_board_name.value === board_name) {
         watching_board_name.value = null
     }
@@ -238,16 +252,20 @@ async function write_messages(messages: Array<string>) {
 }
 function updated_check_condition(check_state: CheckState) {
     update_board(watching_board_name.value!)
+    update_all_board()
 }
 function updated_sort_type(sort_type: SortType) {
     calendar_sort_mode.value = sort_type
     update_board(watching_board_name.value!)
+    update_all_board()
 }
 function updated_search_word(word: string) {
     update_board(watching_board_name.value!)
+    update_all_board()
 }
 function updated_boards_by_user() {
     update_board(watching_board_name.value!)
+    update_all_board()
 }
 function is_opened_board(board_name: string): boolean {
     let opened = false
@@ -275,6 +293,7 @@ function added_task(task_info: TaskInfo) {
         select_board(target_board_name)
         update_board(target_board_name)
     }
+    update_all_board()
     update_board_struct()
     write_message("タスクを追加しました")
 }
@@ -282,6 +301,7 @@ function updated_tags_by_user() {
     if (watching_board_name.value) {
         update_board(watching_board_name.value!)
     }
+    update_all_board()
 }
 function updated_checked_tags(tags: Array<string>) {
     return
@@ -305,12 +325,17 @@ function updated_task(old_task_info: TaskInfo | null | undefined, new_task_info:
     const new_board_name = new_task_info.board_info.board_name
     if (is_opened_board(old_board_name)) {
         select_board(old_board_name)
-        update_board(old_board_name)
+        if (option.value.enable_hot_reload || old_board_name != new_board_name) {
+            update_board(old_board_name)
+        }
     }
     if (is_opened_board(new_board_name)) {
         select_board(new_board_name)
-        update_board(new_board_name)
+        if (option.value.enable_hot_reload || old_board_name != new_board_name) {
+            update_board(new_board_name)
+        }
     }
+    update_all_board()
     update_board_struct()
     if (watching_task_info.value?.task.task_id === new_task_info.task?.task_id) {
         watching_task_info.value = new_task_info
@@ -323,6 +348,7 @@ function deleted_task(task_info: TaskInfo) {
         select_board(target_board_name)
         update_board(target_board_name)
     }
+    update_all_board()
     if (watching_task_info.value?.task.task_id === task_info.task?.task_id) {
         select_board(null)
     }

@@ -4,4 +4,5 @@ export default class ApplicationConfig {
     public default_board_name: string = ""
     public board_struct: any = null
     public tag_struct: any = null
+    public enable_hot_reload: boolean = false
 }

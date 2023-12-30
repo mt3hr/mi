@@ -124,6 +124,7 @@ type ApplicationConfig struct {
 	BoardStruct      interface{} `yaml:"BoardStruct" json:"board_struct"`
 	TagStruct        interface{} `yaml:"TagStruct" json:"tag_struct"`
 	DefaultBoardName string      `yaml:"DefaultBoardName" json:"default_board_name"`
+	EnableHotReload  bool        `json:"enable_hot_reload"`
 }
 
 func getConfigFile() string {
@@ -163,6 +164,9 @@ func CreateDefaultConfigYAML() string {
   EnableDeleteAction: false
 
 ApplicationConfig:
+  # タスクに更新があったときに板をリロードするかどうか
+  EnableHotReload: false
+
   # 読み込み時にチェックを入れないTag
   UnCheckTags: []
 
