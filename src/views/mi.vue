@@ -265,7 +265,6 @@ function updated_search_word(word: string) {
 }
 function updated_boards_by_user() {
     update_board(watching_board_name.value!)
-    update_all_board()
 }
 function is_opened_board(board_name: string): boolean {
     let opened = false
@@ -301,7 +300,6 @@ function updated_tags_by_user() {
     if (watching_board_name.value) {
         update_board(watching_board_name.value!)
     }
-    update_all_board()
 }
 function updated_checked_tags(tags: Array<string>) {
     return
