@@ -1,6 +1,6 @@
 <template>
     <v-card :id="task_info.task.task_id" @contextmenu.prevent="show_contextmenu" @click="emit_clicked_task"
-        class="board_task_card pa-0 ma-0" draggable="true" @dragstart="dragstart">
+        class="board_task_card pa-0 ma-0" :draggable="true" @dragstart="dragstart">
         <table class="task_title_line_table">
             <tr>
                 <td align="left" class="task_checkbox_td">

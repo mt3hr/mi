@@ -173,6 +173,7 @@ ApplicationConfig:
 
   # Device, Type, Rep, Tagの階層構造の設定。
   BoardStruct:
+    All: board
     Inbox: board
   TagStruct: 
     no tag: tag
@@ -558,31 +559,31 @@ func LaunchServer() error {
 	router := registrep.Router
 
 	/*
-	//旧版DB対応
-	allTasks, err := LoadedRepositories.MiReps.GetAllTasks(context.TODO())
-	if err != nil {
-		panic(err)
-	}
-	for _, task := range allTasks {
-		start, err := LoadedRepositories.MiReps.GetLatestStartInfoFromTaskID(context.TODO(), task.TaskID)
-		if start == nil || err != nil {
-			LoadedRepositories.MiRep.AddStartInfo(&mi.StartInfo{
-				StartID:     uuid.New().String(),
-				TaskID:      task.TaskID,
-				UpdatedTime: time.Now(),
-				Start:       nil,
-			})
+		//旧版DB対応
+		allTasks, err := LoadedRepositories.MiReps.GetAllTasks(context.TODO())
+		if err != nil {
+			panic(err)
 		}
-		end, err := LoadedRepositories.MiReps.GetLatestEndInfoFromTaskID(context.TODO(), task.TaskID)
-		if end == nil || err != nil {
-			LoadedRepositories.MiRep.AddEndInfo(&mi.EndInfo{
-				EndID:       uuid.New().String(),
-				TaskID:      task.TaskID,
-				UpdatedTime: time.Now(),
-				End:         nil,
-			})
+		for _, task := range allTasks {
+			start, err := LoadedRepositories.MiReps.GetLatestStartInfoFromTaskID(context.TODO(), task.TaskID)
+			if start == nil || err != nil {
+				LoadedRepositories.MiRep.AddStartInfo(&mi.StartInfo{
+					StartID:     uuid.New().String(),
+					TaskID:      task.TaskID,
+					UpdatedTime: time.Now(),
+					Start:       nil,
+				})
+			}
+			end, err := LoadedRepositories.MiReps.GetLatestEndInfoFromTaskID(context.TODO(), task.TaskID)
+			if end == nil || err != nil {
+				LoadedRepositories.MiRep.AddEndInfo(&mi.EndInfo{
+					EndID:       uuid.New().String(),
+					TaskID:      task.TaskID,
+					UpdatedTime: time.Now(),
+					End:         nil,
+				})
+			}
 		}
-	}
 	*/
 
 	router.HandleFunc(get_board_struct_address, func(w http.ResponseWriter, r *http.Request) {

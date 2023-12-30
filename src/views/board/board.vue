@@ -70,6 +70,7 @@ const title_style: Ref<any> = ref(generate_title_style())
 const is_loading: Ref<boolean> = ref(true)
 const reload_overlay_height: Ref<String> = ref("0px")
 const overlay_z_index: Ref<Number> = ref(-5000)
+const all_board_name: string = new MiServerAPI().all_board_name()
 
 watch(() => props.task_infos, () => {
     update_style()
@@ -136,6 +137,9 @@ function dragover(e: DragEvent) {
     e!.stopPropagation()
 }
 function drop(e: DragEvent) {
+    if (props.board_name == all_board_name) {
+        return
+    }
     let drop_task_info: TaskInfo = new TaskInfo()
     try {
         drop_task_info = JSON.parse(e.dataTransfer!.getData("mi/task_info"))

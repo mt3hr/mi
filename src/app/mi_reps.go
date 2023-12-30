@@ -491,7 +491,7 @@ func (m MiReps) GetTasksAtBoard(ctx context.Context, query *SearchTaskQuery) ([]
 			if err != nil {
 				return nil, err
 			}
-			if taskInfo.BoardInfo.BoardName == query.Board &&
+			if (taskInfo.BoardInfo.BoardName == query.Board || query.Board == all_board_name) &&
 				(query.Word == "" || strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), strings.ToLower(query.Word))) {
 				isMatch := false
 				switch query.CheckState {

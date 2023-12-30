@@ -35,6 +35,7 @@ import GetBoardNamesResponse from "./GetBoardNamesResponse";
 import GetTagNamesRequest from "./GetTagNamesRequest";
 import GetTagNamesResponse from "./GetTagNamesResponse";
 
+const all_board_name = "All"
 const get_board_struct_address = "/api/get_board_struct"
 const get_tag_struct_address = "/api/get_tag_struct"
 const add_task_address = "/api/add_task"
@@ -324,5 +325,9 @@ export default class MiServerAPI {
         const json = await res.json()
         const response: GetApplicationConfigResponse = json
         return response
+    }
+
+    public all_board_name(): string {
+        return all_board_name
     }
 }
