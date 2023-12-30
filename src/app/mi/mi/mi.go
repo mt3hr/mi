@@ -1482,7 +1482,6 @@ func LaunchServer() error {
 			panic(err)
 		}
 
-		boardNames := map[string]interface{}{}
 		wg := &sync.WaitGroup{}
 		ch := make(chan []string, len(LoadedRepositories.MiReps))
 		for _, miRep := range LoadedRepositories.MiReps {
@@ -1509,6 +1508,17 @@ func LaunchServer() error {
 				ch <- repsBoardNames
 			}(miRep)
 		}
+		boardNamesList := []string{}
+		boardStructMap := getConfig().ApplicationConfig.BoardStruct.(MapSlice)
+		for _, boardNameObj := range boardStructMap {
+			if boardNameObj.Value.(string) == "board" {
+				boardName := boardNameObj.Key.(string)
+				if boardName == mi.AllBoardName {
+					continue
+				}
+				boardNamesList = append(boardNamesList, boardName)
+			}
+		}
 		wg.Wait()
 	loop:
 		for {
@@ -1518,22 +1528,28 @@ func LaunchServer() error {
 					continue loop
 				}
 				for _, repsBoardName := range repsBoardNames {
-					boardNames[repsBoardName] = struct{}{}
+					boardNamesList = append(boardNamesList, repsBoardName)
 				}
 			default:
 				break loop
 			}
 		}
 
-		boardNamesList := []string{}
-		for boardName := range boardNames {
-			boardNamesList = append(boardNamesList, boardName)
+		boardNames := []string{}
+		for _, boardName := range boardNamesList {
+			existBoardName := false
+			for _, boardNameInList := range boardNames {
+				if boardName == boardNameInList {
+					existBoardName = true
+					break
+				}
+			}
+			if existBoardName {
+				continue
+			}
+			boardNames = append(boardNames, boardName)
 		}
-		sort.Slice(boardNamesList, func(i, j int) bool {
-			return boardNamesList[i] < boardNamesList[j]
-		})
-		response.BoardNames = boardNamesList
-
+		response.BoardNames = boardNames
 	}).Methods(get_board_names_method)
 
 	router.HandleFunc(get_application_config_address, func(w http.ResponseWriter, r *http.Request) {

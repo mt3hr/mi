@@ -7,7 +7,7 @@ import (
 	"github.com/mt3hr/rykv/kyou"
 )
 
-const all_board_name = "All"
+const AllBoardName = "All"
 
 type MiRep interface {
 	GetAllTasks(ctx context.Context) ([]*Task, error)

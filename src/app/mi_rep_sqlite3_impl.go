@@ -55,7 +55,7 @@ func (m *miRepSQLiteImpl) SearchTasks(ctx context.Context, word string, query *S
 			if err != nil {
 				return nil, err
 			}
-			if (taskInfo.BoardInfo.BoardName == query.Board || query.Board == all_board_name) &&
+			if (taskInfo.BoardInfo.BoardName == query.Board || query.Board == AllBoardName) &&
 				strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), strings.ToLower(query.Word)) {
 				isMatch := false
 				switch query.CheckState {
@@ -811,7 +811,7 @@ func (m *miRepSQLiteImpl) GetTasksAtBoard(ctx context.Context, query *SearchTask
 			if err != nil {
 				return nil, err
 			}
-			if (taskInfo.BoardInfo.BoardName == query.Board || query.Board == all_board_name) &&
+			if (taskInfo.BoardInfo.BoardName == query.Board || query.Board == AllBoardName) &&
 				strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), strings.ToLower(query.Word)) {
 				isMatch := false
 				switch query.CheckState {
