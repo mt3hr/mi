@@ -252,16 +252,13 @@ async function write_messages(messages: Array<string>) {
 }
 function updated_check_condition(check_state: CheckState) {
     update_board(watching_board_name.value!)
-    update_all_board()
 }
 function updated_sort_type(sort_type: SortType) {
     calendar_sort_mode.value = sort_type
     update_board(watching_board_name.value!)
-    update_all_board()
 }
 function updated_search_word(word: string) {
     update_board(watching_board_name.value!)
-    update_all_board()
 }
 function updated_boards_by_user() {
     update_board(watching_board_name.value!)
@@ -325,15 +322,16 @@ function updated_task(old_task_info: TaskInfo | null | undefined, new_task_info:
         select_board(old_board_name)
         if (option.value.enable_hot_reload || old_board_name != new_board_name) {
             update_board(old_board_name)
+            update_all_board()
         }
     }
     if (is_opened_board(new_board_name)) {
         select_board(new_board_name)
         if (option.value.enable_hot_reload || old_board_name != new_board_name) {
             update_board(new_board_name)
+            update_all_board()
         }
     }
-    update_all_board()
     update_board_struct()
     if (watching_task_info.value?.task.task_id === new_task_info.task?.task_id) {
         watching_task_info.value = new_task_info
