@@ -204,141 +204,512 @@ loop:
 }
 
 func (m MiReps) GetTask(ctx context.Context, taskID string) (*Task, error) {
+	taskMap := map[string]*Task{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *Task, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		task, err := miRep.GetTask(ctx, taskID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			tasks, err := miRep.GetTask(ctx, taskID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- tasks
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case task := <-ch:
+			if task == nil {
+				continue loop
+			}
+			taskMap[task.TaskID] = task
+		default:
+			break loop
+		}
+	}
+
+	tasks := []*Task{}
+	for _, task := range taskMap {
+		if task == nil {
 			continue
 		}
-		return task, nil
+		tasks = append(tasks, task)
 	}
-	return nil, fmt.Errorf("task not found. taskID=%s", taskID)
+	sort.Slice(tasks, func(i int, j int) bool {
+		return tasks[i].CreatedTime.After(tasks[j].CreatedTime)
+	})
+	if len(tasks) == 0 {
+		return nil, nil
+	}
+	return tasks[0], nil
 }
 
 func (m MiReps) GetLatestCheckStateInfoFromTaskID(ctx context.Context, taskID string) (*CheckStateInfo, error) {
-	checkStateInfos := []*CheckStateInfo{}
+	checkStateMap := map[string]*CheckStateInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *CheckStateInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		checkState, err := miRep.GetLatestCheckStateInfoFromTaskID(ctx, taskID)
-		if err != nil {
-			continue
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			checkStateInfo, err := miRep.GetLatestCheckStateInfoFromTaskID(ctx, taskID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- checkStateInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
 		}
-		checkStateInfos = append(checkStateInfos, checkState)
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case checkStateInfo := <-ch:
+			if checkStateInfo == nil {
+				continue loop
+			}
+			checkStateMap[checkStateInfo.CheckStateID] = checkStateInfo
+		default:
+			break loop
+		}
 	}
 
+	checkStateInfos := []*CheckStateInfo{}
+	for _, checkStateInfo := range checkStateMap {
+		if checkStateInfo == nil {
+			continue
+		}
+		checkStateInfos = append(checkStateInfos, checkStateInfo)
+	}
 	sort.Slice(checkStateInfos, func(i int, j int) bool {
 		return checkStateInfos[i].UpdatedTime.After(checkStateInfos[j].UpdatedTime)
 	})
-	for _, checkStateInfo := range checkStateInfos {
-		return checkStateInfo, nil
+	if len(checkStateInfos) == 0 {
+		return nil, nil
 	}
-
-	return nil, fmt.Errorf("check state not found. taskID=%s", taskID)
+	return checkStateInfos[0], nil
 }
 
 func (m MiReps) GetLatestTaskTitleInfoFromTaskID(ctx context.Context, taskID string) (*TaskTitleInfo, error) {
-	taskTitleInfos := []*TaskTitleInfo{}
+	taskTitleInfoMap := map[string]*TaskTitleInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *TaskTitleInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		titleInfo, err := miRep.GetLatestTaskTitleInfoFromTaskID(ctx, taskID)
-		if err != nil {
-			continue
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			taskTitleInfo, err := miRep.GetLatestTaskTitleInfoFromTaskID(ctx, taskID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- taskTitleInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
 		}
-		taskTitleInfos = append(taskTitleInfos, titleInfo)
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case taskTitleInfo := <-ch:
+			if taskTitleInfo == nil {
+				continue loop
+			}
+			taskTitleInfoMap[taskTitleInfo.TaskTitleID] = taskTitleInfo
+		default:
+			break loop
+		}
 	}
 
+	taskTitleInfos := []*TaskTitleInfo{}
+	for _, taskTitleInfo := range taskTitleInfoMap {
+		if taskTitleInfo == nil {
+			continue
+		}
+		taskTitleInfos = append(taskTitleInfos, taskTitleInfo)
+	}
 	sort.Slice(taskTitleInfos, func(i int, j int) bool {
 		return taskTitleInfos[i].UpdatedTime.After(taskTitleInfos[j].UpdatedTime)
 	})
-	for _, taskTitleInfo := range taskTitleInfos {
-		return taskTitleInfo, nil
+	if len(taskTitleInfos) == 0 {
+		return nil, nil
 	}
-
-	return nil, fmt.Errorf("title not found. taskID=%s", taskID)
+	return taskTitleInfos[0], nil
 }
 
 func (m MiReps) GetLatestLimitInfoFromTaskID(ctx context.Context, taskID string) (*LimitInfo, error) {
-	limitInfos := []*LimitInfo{}
+	limitInfoMap := map[string]*LimitInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *LimitInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		limitInfo, err := miRep.GetLatestLimitInfoFromTaskID(ctx, taskID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			limitInfo, err := miRep.GetLatestLimitInfoFromTaskID(ctx, taskID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- limitInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case limitInfo := <-ch:
+			if limitInfo == nil {
+				continue loop
+			}
+			limitInfoMap[limitInfo.LimitID] = limitInfo
+		default:
+			break loop
+		}
+	}
+
+	limitInfos := []*LimitInfo{}
+	for _, limitInfo := range limitInfoMap {
+		if limitInfo == nil {
 			continue
 		}
 		limitInfos = append(limitInfos, limitInfo)
 	}
-
 	sort.Slice(limitInfos, func(i int, j int) bool {
 		return limitInfos[i].UpdatedTime.After(limitInfos[j].UpdatedTime)
 	})
-	for _, limitInfo := range limitInfos {
-		return limitInfo, nil
+	if len(limitInfos) == 0 {
+		return nil, nil
 	}
-
-	return nil, fmt.Errorf("limit not found. taskID=%s", taskID)
+	return limitInfos[0], nil
 }
 
 func (m MiReps) GetLatestStartInfoFromTaskID(ctx context.Context, taskID string) (*StartInfo, error) {
-	startInfos := []*StartInfo{}
+	startInfoMap := map[string]*StartInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *StartInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		startInfo, err := miRep.GetLatestStartInfoFromTaskID(ctx, taskID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			startInfo, err := miRep.GetLatestStartInfoFromTaskID(ctx, taskID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- startInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case startInfo := <-ch:
+			if startInfo == nil {
+				continue loop
+			}
+			startInfoMap[startInfo.StartID] = startInfo
+		default:
+			break loop
+		}
+	}
+
+	startInfos := []*StartInfo{}
+	for _, startInfo := range startInfoMap {
+		if startInfo == nil {
 			continue
 		}
 		startInfos = append(startInfos, startInfo)
 	}
-
 	sort.Slice(startInfos, func(i int, j int) bool {
 		return startInfos[i].UpdatedTime.After(startInfos[j].UpdatedTime)
 	})
-	for _, startInfo := range startInfos {
-		return startInfo, nil
+	if len(startInfos) == 0 {
+		return nil, nil
 	}
-
-	return nil, fmt.Errorf("start not found. taskID=%s", taskID)
+	return startInfos[0], nil
 }
 
 func (m MiReps) GetLatestEndInfoFromTaskID(ctx context.Context, taskID string) (*EndInfo, error) {
-	endInfos := []*EndInfo{}
+	endInfoMap := map[string]*EndInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *EndInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		endInfo, err := miRep.GetLatestEndInfoFromTaskID(ctx, taskID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			endInfo, err := miRep.GetLatestEndInfoFromTaskID(ctx, taskID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- endInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case endInfo := <-ch:
+			if endInfo == nil {
+				continue loop
+			}
+			endInfoMap[endInfo.EndID] = endInfo
+		default:
+			break loop
+		}
+	}
+
+	endInfos := []*EndInfo{}
+	for _, endInfo := range endInfoMap {
+		if endInfo == nil {
 			continue
 		}
 		endInfos = append(endInfos, endInfo)
 	}
-
 	sort.Slice(endInfos, func(i int, j int) bool {
 		return endInfos[i].UpdatedTime.After(endInfos[j].UpdatedTime)
 	})
-	for _, endInfo := range endInfos {
-		return endInfo, nil
+	if len(endInfos) == 0 {
+		return nil, nil
 	}
-
-	return nil, fmt.Errorf("end not found. taskID=%s", taskID)
+	return endInfos[0], nil
 }
 
 func (m MiReps) GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string) (*BoardInfo, error) {
-	boardInfos := []*BoardInfo{}
+	boardInfoMap := map[string]*BoardInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *BoardInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		boardInfo, err := miRep.GetLatestBoardInfoFromTaskID(ctx, taskID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			boardInfo, err := miRep.GetLatestBoardInfoFromTaskID(ctx, taskID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- boardInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case boardInfo := <-ch:
+			if boardInfo == nil {
+				continue loop
+			}
+			boardInfoMap[boardInfo.BoardInfoID] = boardInfo
+		default:
+			break loop
+		}
+	}
+
+	boardInfos := []*BoardInfo{}
+	for _, boardInfo := range boardInfoMap {
+		if boardInfo == nil {
 			continue
 		}
 		boardInfos = append(boardInfos, boardInfo)
 	}
-
 	sort.Slice(boardInfos, func(i int, j int) bool {
 		return boardInfos[i].UpdatedTime.After(boardInfos[j].UpdatedTime)
 	})
-	for _, boardInfo := range boardInfos {
-		return boardInfo, nil
+	if len(boardInfos) == 0 {
+		return nil, nil
 	}
-
-	return nil, fmt.Errorf("board not found. taskID=%s", taskID)
+	return boardInfos[0], nil
 }
 
 func (m MiReps) GetCheckStateInfo(ctx context.Context, checkStateID string) (*CheckStateInfo, error) {
-	checkStateInfos := []*CheckStateInfo{}
+	checkStateMap := map[string]*CheckStateInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *CheckStateInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		checkStateInfo, err := miRep.GetCheckStateInfo(ctx, checkStateID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			checkStateInfo, err := miRep.GetCheckStateInfo(ctx, checkStateID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- checkStateInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case checkStateInfo := <-ch:
+			if checkStateInfo == nil {
+				continue loop
+			}
+			checkStateMap[checkStateInfo.CheckStateID] = checkStateInfo
+		default:
+			break loop
+		}
+	}
+
+	checkStateInfos := []*CheckStateInfo{}
+	for _, checkStateInfo := range checkStateMap {
+		if checkStateInfo == nil {
 			continue
 		}
 		checkStateInfos = append(checkStateInfos, checkStateInfo)
@@ -355,10 +726,57 @@ func (m MiReps) GetCheckStateInfo(ctx context.Context, checkStateID string) (*Ch
 }
 
 func (m MiReps) GetTaskTitleInfo(ctx context.Context, taskTitleID string) (*TaskTitleInfo, error) {
-	taskTitleInfos := []*TaskTitleInfo{}
+	taskTitleInfoMap := map[string]*TaskTitleInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *TaskTitleInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		taskTitleInfo, err := miRep.GetTaskTitleInfo(ctx, taskTitleID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			taskTitleInfo, err := miRep.GetTaskTitleInfo(ctx, taskTitleID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- taskTitleInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case taskTitleInfo := <-ch:
+			if taskTitleInfo == nil {
+				continue loop
+			}
+			taskTitleInfoMap[taskTitleInfo.TaskTitleID] = taskTitleInfo
+		default:
+			break loop
+		}
+	}
+
+	taskTitleInfos := []*TaskTitleInfo{}
+	for _, taskTitleInfo := range taskTitleInfoMap {
+		if taskTitleInfo == nil {
 			continue
 		}
 		taskTitleInfos = append(taskTitleInfos, taskTitleInfo)
@@ -375,13 +793,59 @@ func (m MiReps) GetTaskTitleInfo(ctx context.Context, taskTitleID string) (*Task
 }
 
 func (m MiReps) GetLimitInfo(ctx context.Context, limitInfoID string) (*LimitInfo, error) {
-	limitInfos := []*LimitInfo{}
+	limitInfoMap := map[string]*LimitInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *LimitInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		limitInfo, err := miRep.GetLimitInfo(ctx, limitInfoID)
-		if err != nil {
-			continue
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			limitInfo, err := miRep.GetLimitInfo(ctx, limitInfoID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- limitInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
 		}
-		limitInfos = append(limitInfos, limitInfo)
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case limitInfo := <-ch:
+			if limitInfo == nil {
+				continue loop
+			}
+			limitInfoMap[limitInfo.LimitID] = limitInfo
+		default:
+			break loop
+		}
+	}
+
+	limitInfos := []*LimitInfo{}
+	for _, limitInfo := range limitInfoMap {
+		if limitInfo == nil {
+			limitInfos = append(limitInfos, limitInfo)
+		}
 	}
 
 	sort.Slice(limitInfos, func(i int, j int) bool {
@@ -394,14 +858,61 @@ func (m MiReps) GetLimitInfo(ctx context.Context, limitInfoID string) (*LimitInf
 	return nil, fmt.Errorf("limit not found. limitInfoID=%s", limitInfoID)
 }
 
-func (m MiReps) GetStartInfo(ctx context.Context, limitInfoID string) (*StartInfo, error) {
-	startInfos := []*StartInfo{}
+func (m MiReps) GetStartInfo(ctx context.Context, startInfoID string) (*StartInfo, error) {
+	startInfoMap := map[string]*StartInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *StartInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		limitInfo, err := miRep.GetStartInfo(ctx, limitInfoID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			startInfo, err := miRep.GetStartInfo(ctx, startInfoID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- startInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case startInfo := <-ch:
+			if startInfo == nil {
+				continue loop
+			}
+			startInfoMap[startInfo.StartID] = startInfo
+		default:
+			break loop
+		}
+	}
+
+	startInfos := []*StartInfo{}
+	for _, startInfo := range startInfoMap {
+		if startInfo == nil {
 			continue
 		}
-		startInfos = append(startInfos, limitInfo)
+		startInfos = append(startInfos, startInfo)
 	}
 
 	sort.Slice(startInfos, func(i int, j int) bool {
@@ -411,17 +922,64 @@ func (m MiReps) GetStartInfo(ctx context.Context, limitInfoID string) (*StartInf
 		return limitInfo, nil
 	}
 
-	return nil, fmt.Errorf("limit not found. limitInfoID=%s", limitInfoID)
+	return nil, fmt.Errorf("limit not found. limitInfoID=%s", startInfoID)
 }
 
-func (m MiReps) GetEndInfo(ctx context.Context, limitInfoID string) (*EndInfo, error) {
-	endInfos := []*EndInfo{}
+func (m MiReps) GetEndInfo(ctx context.Context, endInfoID string) (*EndInfo, error) {
+	endInfoMap := map[string]*EndInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *EndInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		limitInfo, err := miRep.GetEndInfo(ctx, limitInfoID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			endInfo, err := miRep.GetEndInfo(ctx, endInfoID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- endInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case endInfo := <-ch:
+			if endInfo == nil {
+				continue loop
+			}
+			endInfoMap[endInfo.EndID] = endInfo
+		default:
+			break loop
+		}
+	}
+
+	endInfos := []*EndInfo{}
+	for _, endInfo := range endInfoMap {
+		if endInfo == nil {
 			continue
 		}
-		endInfos = append(endInfos, limitInfo)
+		endInfos = append(endInfos, endInfo)
 	}
 
 	sort.Slice(endInfos, func(i int, j int) bool {
@@ -431,14 +989,61 @@ func (m MiReps) GetEndInfo(ctx context.Context, limitInfoID string) (*EndInfo, e
 		return limitInfo, nil
 	}
 
-	return nil, fmt.Errorf("limit not found. limitInfoID=%s", limitInfoID)
+	return nil, fmt.Errorf("limit not found. limitInfoID=%s", endInfoID)
 }
 
 func (m MiReps) GetBoardInfo(ctx context.Context, boardInfoID string) (*BoardInfo, error) {
-	boardInfos := []*BoardInfo{}
+	boardInfoMap := map[string]*BoardInfo{}
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	ch := make(chan *BoardInfo, len(m))
+	errch := make(chan error, len(m))
+	defer close(ch)
+	defer close(errch)
 	for _, miRep := range m {
-		boardInfo, err := miRep.GetBoardInfo(ctx, boardInfoID)
-		if err != nil {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			boardInfo, err := miRep.GetBoardInfo(ctx, boardInfoID)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- boardInfo
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at GetAllTasks: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return nil, err
+	}
+loop:
+	for {
+		select {
+		case boardInfo := <-ch:
+			if boardInfo == nil {
+				continue loop
+			}
+			boardInfoMap[boardInfo.BoardInfoID] = boardInfo
+		default:
+			break loop
+		}
+	}
+
+	boardInfos := []*BoardInfo{}
+	for _, boardInfo := range boardInfoMap {
+		if boardInfo == nil {
 			continue
 		}
 		boardInfos = append(boardInfos, boardInfo)
