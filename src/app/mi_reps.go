@@ -204,7 +204,6 @@ loop:
 }
 
 func (m MiReps) GetTask(ctx context.Context, taskID string) (*Task, error) {
-	taskMap := map[string]*Task{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -239,6 +238,7 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+	tasks := []*Task{}
 loop:
 	for {
 		select {
@@ -246,19 +246,12 @@ loop:
 			if task == nil {
 				continue loop
 			}
-			taskMap[task.TaskID] = task
+			tasks = append(tasks, task)
 		default:
 			break loop
 		}
 	}
 
-	tasks := []*Task{}
-	for _, task := range taskMap {
-		if task == nil {
-			continue
-		}
-		tasks = append(tasks, task)
-	}
 	sort.Slice(tasks, func(i int, j int) bool {
 		return tasks[i].CreatedTime.After(tasks[j].CreatedTime)
 	})
@@ -269,7 +262,6 @@ loop:
 }
 
 func (m MiReps) GetLatestCheckStateInfoFromTaskID(ctx context.Context, taskID string) (*CheckStateInfo, error) {
-	checkStateMap := map[string]*CheckStateInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -304,6 +296,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	checkStateInfos := []*CheckStateInfo{}
 loop:
 	for {
 		select {
@@ -311,19 +305,12 @@ loop:
 			if checkStateInfo == nil {
 				continue loop
 			}
-			checkStateMap[checkStateInfo.CheckStateID] = checkStateInfo
+			checkStateInfos = append(checkStateInfos, checkStateInfo)
 		default:
 			break loop
 		}
 	}
 
-	checkStateInfos := []*CheckStateInfo{}
-	for _, checkStateInfo := range checkStateMap {
-		if checkStateInfo == nil {
-			continue
-		}
-		checkStateInfos = append(checkStateInfos, checkStateInfo)
-	}
 	sort.Slice(checkStateInfos, func(i int, j int) bool {
 		return checkStateInfos[i].UpdatedTime.After(checkStateInfos[j].UpdatedTime)
 	})
@@ -369,6 +356,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	taskTitleInfos := []*TaskTitleInfo{}
 loop:
 	for {
 		select {
@@ -377,18 +366,12 @@ loop:
 				continue loop
 			}
 			taskTitleInfoMap[taskTitleInfo.TaskTitleID] = taskTitleInfo
+			taskTitleInfos = append(taskTitleInfos, taskTitleInfo)
 		default:
 			break loop
 		}
 	}
 
-	taskTitleInfos := []*TaskTitleInfo{}
-	for _, taskTitleInfo := range taskTitleInfoMap {
-		if taskTitleInfo == nil {
-			continue
-		}
-		taskTitleInfos = append(taskTitleInfos, taskTitleInfo)
-	}
 	sort.Slice(taskTitleInfos, func(i int, j int) bool {
 		return taskTitleInfos[i].UpdatedTime.After(taskTitleInfos[j].UpdatedTime)
 	})
@@ -399,7 +382,6 @@ loop:
 }
 
 func (m MiReps) GetLatestLimitInfoFromTaskID(ctx context.Context, taskID string) (*LimitInfo, error) {
-	limitInfoMap := map[string]*LimitInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -434,6 +416,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	limitInfos := []*LimitInfo{}
 loop:
 	for {
 		select {
@@ -441,19 +425,12 @@ loop:
 			if limitInfo == nil {
 				continue loop
 			}
-			limitInfoMap[limitInfo.LimitID] = limitInfo
+			limitInfos = append(limitInfos, limitInfo)
 		default:
 			break loop
 		}
 	}
 
-	limitInfos := []*LimitInfo{}
-	for _, limitInfo := range limitInfoMap {
-		if limitInfo == nil {
-			continue
-		}
-		limitInfos = append(limitInfos, limitInfo)
-	}
 	sort.Slice(limitInfos, func(i int, j int) bool {
 		return limitInfos[i].UpdatedTime.After(limitInfos[j].UpdatedTime)
 	})
@@ -464,7 +441,6 @@ loop:
 }
 
 func (m MiReps) GetLatestStartInfoFromTaskID(ctx context.Context, taskID string) (*StartInfo, error) {
-	startInfoMap := map[string]*StartInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -499,6 +475,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	startInfos := []*StartInfo{}
 loop:
 	for {
 		select {
@@ -506,19 +484,12 @@ loop:
 			if startInfo == nil {
 				continue loop
 			}
-			startInfoMap[startInfo.StartID] = startInfo
+			startInfos = append(startInfos, startInfo)
 		default:
 			break loop
 		}
 	}
 
-	startInfos := []*StartInfo{}
-	for _, startInfo := range startInfoMap {
-		if startInfo == nil {
-			continue
-		}
-		startInfos = append(startInfos, startInfo)
-	}
 	sort.Slice(startInfos, func(i int, j int) bool {
 		return startInfos[i].UpdatedTime.After(startInfos[j].UpdatedTime)
 	})
@@ -529,7 +500,6 @@ loop:
 }
 
 func (m MiReps) GetLatestEndInfoFromTaskID(ctx context.Context, taskID string) (*EndInfo, error) {
-	endInfoMap := map[string]*EndInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -564,6 +534,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	endInfos := []*EndInfo{}
 loop:
 	for {
 		select {
@@ -571,19 +543,12 @@ loop:
 			if endInfo == nil {
 				continue loop
 			}
-			endInfoMap[endInfo.EndID] = endInfo
+			endInfos = append(endInfos, endInfo)
 		default:
 			break loop
 		}
 	}
 
-	endInfos := []*EndInfo{}
-	for _, endInfo := range endInfoMap {
-		if endInfo == nil {
-			continue
-		}
-		endInfos = append(endInfos, endInfo)
-	}
 	sort.Slice(endInfos, func(i int, j int) bool {
 		return endInfos[i].UpdatedTime.After(endInfos[j].UpdatedTime)
 	})
@@ -594,7 +559,6 @@ loop:
 }
 
 func (m MiReps) GetLatestBoardInfoFromTaskID(ctx context.Context, taskID string) (*BoardInfo, error) {
-	boardInfoMap := map[string]*BoardInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -629,6 +593,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	boardInfos := []*BoardInfo{}
 loop:
 	for {
 		select {
@@ -636,19 +602,12 @@ loop:
 			if boardInfo == nil {
 				continue loop
 			}
-			boardInfoMap[boardInfo.BoardInfoID] = boardInfo
+			boardInfos = append(boardInfos, boardInfo)
 		default:
 			break loop
 		}
 	}
 
-	boardInfos := []*BoardInfo{}
-	for _, boardInfo := range boardInfoMap {
-		if boardInfo == nil {
-			continue
-		}
-		boardInfos = append(boardInfos, boardInfo)
-	}
 	sort.Slice(boardInfos, func(i int, j int) bool {
 		return boardInfos[i].UpdatedTime.After(boardInfos[j].UpdatedTime)
 	})
@@ -659,7 +618,6 @@ loop:
 }
 
 func (m MiReps) GetCheckStateInfo(ctx context.Context, checkStateID string) (*CheckStateInfo, error) {
-	checkStateMap := map[string]*CheckStateInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -694,6 +652,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	checkStateInfos := []*CheckStateInfo{}
 loop:
 	for {
 		select {
@@ -701,18 +661,10 @@ loop:
 			if checkStateInfo == nil {
 				continue loop
 			}
-			checkStateMap[checkStateInfo.CheckStateID] = checkStateInfo
+			checkStateInfos = append(checkStateInfos, checkStateInfo)
 		default:
 			break loop
 		}
-	}
-
-	checkStateInfos := []*CheckStateInfo{}
-	for _, checkStateInfo := range checkStateMap {
-		if checkStateInfo == nil {
-			continue
-		}
-		checkStateInfos = append(checkStateInfos, checkStateInfo)
 	}
 
 	sort.Slice(checkStateInfos, func(i int, j int) bool {
@@ -726,7 +678,6 @@ loop:
 }
 
 func (m MiReps) GetTaskTitleInfo(ctx context.Context, taskTitleID string) (*TaskTitleInfo, error) {
-	taskTitleInfoMap := map[string]*TaskTitleInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -761,6 +712,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	taskTitleInfos := []*TaskTitleInfo{}
 loop:
 	for {
 		select {
@@ -768,18 +721,10 @@ loop:
 			if taskTitleInfo == nil {
 				continue loop
 			}
-			taskTitleInfoMap[taskTitleInfo.TaskTitleID] = taskTitleInfo
+			taskTitleInfos = append(taskTitleInfos, taskTitleInfo)
 		default:
 			break loop
 		}
-	}
-
-	taskTitleInfos := []*TaskTitleInfo{}
-	for _, taskTitleInfo := range taskTitleInfoMap {
-		if taskTitleInfo == nil {
-			continue
-		}
-		taskTitleInfos = append(taskTitleInfos, taskTitleInfo)
 	}
 
 	sort.Slice(taskTitleInfos, func(i int, j int) bool {
@@ -793,7 +738,6 @@ loop:
 }
 
 func (m MiReps) GetLimitInfo(ctx context.Context, limitInfoID string) (*LimitInfo, error) {
-	limitInfoMap := map[string]*LimitInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -828,6 +772,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	limitInfos := []*LimitInfo{}
 loop:
 	for {
 		select {
@@ -835,16 +781,9 @@ loop:
 			if limitInfo == nil {
 				continue loop
 			}
-			limitInfoMap[limitInfo.LimitID] = limitInfo
+			limitInfos = append(limitInfos, limitInfo)
 		default:
 			break loop
-		}
-	}
-
-	limitInfos := []*LimitInfo{}
-	for _, limitInfo := range limitInfoMap {
-		if limitInfo == nil {
-			limitInfos = append(limitInfos, limitInfo)
 		}
 	}
 
@@ -859,7 +798,6 @@ loop:
 }
 
 func (m MiReps) GetStartInfo(ctx context.Context, startInfoID string) (*StartInfo, error) {
-	startInfoMap := map[string]*StartInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -894,6 +832,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	startInfos := []*StartInfo{}
 loop:
 	for {
 		select {
@@ -901,18 +841,10 @@ loop:
 			if startInfo == nil {
 				continue loop
 			}
-			startInfoMap[startInfo.StartID] = startInfo
+			startInfos = append(startInfos, startInfo)
 		default:
 			break loop
 		}
-	}
-
-	startInfos := []*StartInfo{}
-	for _, startInfo := range startInfoMap {
-		if startInfo == nil {
-			continue
-		}
-		startInfos = append(startInfos, startInfo)
 	}
 
 	sort.Slice(startInfos, func(i int, j int) bool {
@@ -926,7 +858,6 @@ loop:
 }
 
 func (m MiReps) GetEndInfo(ctx context.Context, endInfoID string) (*EndInfo, error) {
-	endInfoMap := map[string]*EndInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -961,6 +892,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	endInfos := []*EndInfo{}
 loop:
 	for {
 		select {
@@ -968,18 +901,10 @@ loop:
 			if endInfo == nil {
 				continue loop
 			}
-			endInfoMap[endInfo.EndID] = endInfo
+			endInfos = append(endInfos, endInfo)
 		default:
 			break loop
 		}
-	}
-
-	endInfos := []*EndInfo{}
-	for _, endInfo := range endInfoMap {
-		if endInfo == nil {
-			continue
-		}
-		endInfos = append(endInfos, endInfo)
 	}
 
 	sort.Slice(endInfos, func(i int, j int) bool {
@@ -993,7 +918,6 @@ loop:
 }
 
 func (m MiReps) GetBoardInfo(ctx context.Context, boardInfoID string) (*BoardInfo, error) {
-	boardInfoMap := map[string]*BoardInfo{}
 	existErr := false
 	var err error
 	wg := &sync.WaitGroup{}
@@ -1028,6 +952,8 @@ errloop:
 	if existErr {
 		return nil, err
 	}
+
+	boardInfos := []*BoardInfo{}
 loop:
 	for {
 		select {
@@ -1035,18 +961,10 @@ loop:
 			if boardInfo == nil {
 				continue loop
 			}
-			boardInfoMap[boardInfo.BoardInfoID] = boardInfo
+			boardInfos = append(boardInfos, boardInfo)
 		default:
 			break loop
 		}
-	}
-
-	boardInfos := []*BoardInfo{}
-	for _, boardInfo := range boardInfoMap {
-		if boardInfo == nil {
-			continue
-		}
-		boardInfos = append(boardInfos, boardInfo)
 	}
 
 	sort.Slice(boardInfos, func(i int, j int) bool {
@@ -1095,6 +1013,9 @@ func (m MiReps) GetTasksAtBoard(ctx context.Context, query *SearchTaskQuery) ([]
 			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
 			if err != nil {
 				return nil, err
+			}
+			if taskInfo == nil || taskInfo.BoardInfo == nil { // taskInfo.BoardInfo==nil????
+				continue
 			}
 			if (taskInfo.BoardInfo.BoardName == query.Board || query.Board == AllBoardName) &&
 				(query.Word == "" || strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), strings.ToLower(query.Word))) {
