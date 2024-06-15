@@ -1230,3 +1230,35 @@ loop:
 	}
 	return kyous, nil
 }
+
+// このRepから単語が含まれるKyouを取得する。日時範囲指定
+func (m MiReps) SearchByTime(ctx context.Context, word string, startTime time.Time, endTime time.Time) ([]*kyou.Kyou, error) {
+	kyous := []*kyou.Kyou{}
+	wg := &sync.WaitGroup{}
+	ch := make(chan []*kyou.Kyou, len(m))
+	defer close(ch)
+	for _, miRep := range m {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			kyous, err := miRep.SearchByTime(ctx, word, startTime, endTime)
+			if err != nil {
+				// errch <- err
+				return
+			}
+			ch <- kyous
+		}(miRep)
+	}
+	wg.Wait()
+loop:
+	for {
+		select {
+		case collectedKyous := <-ch:
+			kyous = append(kyous, collectedKyous...)
+		default:
+			break loop
+		}
+	}
+	return kyous, nil
+}
