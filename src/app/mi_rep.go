@@ -49,6 +49,7 @@ type MiRep interface {
 	Path() string
 	RepName() string
 	Search(ctx context.Context, word string) ([]*kyou.Kyou, error)
+	SearchByTime(ctx context.Context, word string, startTime time.Time, endTime time.Time) ([]*kyou.Kyou, error)
 	SearchTasks(ctx context.Context, word string, query *SearchTaskQuery) ([]*Task, error)
 	UpdateCache(ctx context.Context) error
 }

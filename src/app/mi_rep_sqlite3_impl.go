@@ -1053,6 +1053,50 @@ func (m *miRepSQLiteImpl) Search(ctx context.Context, word string) ([]*kyou.Kyou
 	return kyous, nil
 }
 
+func (m *miRepSQLiteImpl) SearchByTime(ctx context.Context, word string, startTime time.Time, endTime time.Time) ([]*kyou.Kyou, error) {
+	word = strings.ToLower(word)
+	kyous := []*kyou.Kyou{}
+
+	checkStateInfos, err := m.GetAllCheckStateInfos(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks, err := m.GetAllTasks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if tasks != nil {
+		for _, task := range tasks {
+			taskInfo, err := m.GetTaskInfo(ctx, task.TaskID)
+			if err != nil {
+				return nil, err
+			}
+			if strings.Contains(strings.ToLower(taskInfo.TaskTitleInfo.Title), word) || word == "" || strings.Contains(word, "タスク作成") && (taskInfo.Task.CreatedTime.After(startTime) && taskInfo.Task.CreatedTime.Before(endTime)) {
+				kyous = append(kyous, &kyou.Kyou{
+					ID:          taskInfo.Task.TaskID,
+					Time:        taskInfo.Task.CreatedTime,
+					RepName:     m.RepName(),
+					ImageSource: "",
+				})
+				for _, checkStateInfo := range checkStateInfos {
+					if checkStateInfo.IsChecked && (word == "" || strings.Contains(word, "タスクチェック")) && (checkStateInfo.UpdatedTime.After(startTime) && checkStateInfo.UpdatedTime.Before(endTime)) {
+						if checkStateInfo.TaskID == taskInfo.Task.TaskID {
+							kyous = append(kyous, &kyou.Kyou{
+								ID:          checkStateInfo.CheckStateID,
+								Time:        checkStateInfo.UpdatedTime,
+								RepName:     m.RepName(),
+								ImageSource: "",
+							})
+						}
+					}
+				}
+			}
+		}
+	}
+	return kyous, nil
+}
+
 func (m *miRepSQLiteImpl) UpdateCache(ctx context.Context) error {
 	return nil
 }

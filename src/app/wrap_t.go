@@ -158,6 +158,11 @@ func (m *miRepT) Search(ctx context.Context, word string) ([]*kyou.Kyou, error) 
 	return m.rep.Search(ctx, word)
 }
 
+// このRepから単語が含まれるKyouを取得する。日時範囲指定
+func (m *miRepT) SearchByTime(ctx context.Context, word string, startTime time.Time, endTime time.Time) ([]*kyou.Kyou, error) {
+	return m.rep.SearchByTime(ctx, word, startTime, endTime)
+}
+
 // なにか情報をキャッシュしているならば、最新の状態に更新する。
 func (m *miRepT) UpdateCache(ctx context.Context) error {
 	return m.rep.UpdateCache(ctx)
