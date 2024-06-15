@@ -2,6 +2,7 @@ package mi
 
 import (
 	"context"
+	"time"
 
 	"github.com/mt3hr/rykv/kyou"
 	"github.com/mt3hr/rykv/tag"
@@ -115,6 +116,11 @@ func (m *miRepT) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, err
 // このRepからすべてのKyouを取得する
 func (m *miRepT) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error) {
 	return m.rep.GetAllKyous(ctx)
+}
+
+// 期間を指定してKyouを取得する
+func (m *miRepT) GetKyousByTime(ctx context.Context, startTime time.Time, endTime time.Time) ([]*kyou.Kyou, error) {
+	return m.rep.GetKyousByTime(ctx, startTime, endTime)
 }
 
 // このRepのもつKyouの内容をHTMLで取得する

@@ -928,6 +928,21 @@ func (m *miRepSQLiteImpl) GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error)
 	return kyous, nil
 }
 
+func (m *miRepSQLiteImpl) GetKyousByTime(ctx context.Context, startTime time.Time, endTime time.Time) ([]*kyou.Kyou, error) {
+	allKyous, err := m.GetAllKyous(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	matchKyous := []*kyou.Kyou{}
+	for _, kyou := range allKyous {
+		if kyou.Time.After(startTime) && kyou.Time.Before(endTime) {
+			matchKyous = append(matchKyous, kyou)
+		}
+	}
+	return matchKyous, nil
+}
+
 func (m *miRepSQLiteImpl) GetContentHTML(ctx context.Context, id string) (string, error) {
 	task, _ := m.GetLatestTaskTitleInfoFromTaskID(ctx, id)
 	if task != nil {

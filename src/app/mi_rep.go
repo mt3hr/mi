@@ -2,6 +2,7 @@ package mi
 
 import (
 	"context"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mt3hr/rykv/kyou"
@@ -40,6 +41,7 @@ type MiRep interface {
 	GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error)
 
 	GetAllKyous(ctx context.Context) ([]*kyou.Kyou, error)
+	GetKyousByTime(ctx context.Context, startTime time.Time, endTime time.Time) ([]*kyou.Kyou, error)
 	GetContentHTML(ctx context.Context, id string) (string, error)
 	GetPath(ctx context.Context, id string) (string, error)
 	Delete(id string) error
