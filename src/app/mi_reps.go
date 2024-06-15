@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mt3hr/rykv/kyou"
 )
@@ -1124,6 +1125,22 @@ loop:
 		}
 	}
 	return kyous, nil
+}
+
+// 期間を指定してKyouを取得する
+func (m MiReps) GetKyousByTime(ctx context.Context, startTime time.Time, endTime time.Time) ([]*kyou.Kyou, error) {
+	allKyous, err := m.GetAllKyous(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	matchKyous := []*kyou.Kyou{}
+	for _, kyou := range allKyous {
+		if kyou.Time.After(startTime) && kyou.Time.Before(endTime) {
+			matchKyous = append(matchKyous, kyou)
+		}
+	}
+	return matchKyous, nil
 }
 
 func (m MiReps) GetContentHTML(ctx context.Context, id string) (string, error) {
