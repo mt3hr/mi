@@ -1,6 +1,7 @@
 package mi_server_cmd
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -43,6 +44,7 @@ var (
 				log.Fatal(err)
 			}
 
+			mi.LoadedRepositories.UpdateCache(context.Background())
 			err = mi.LaunchServer()
 			if err != nil {
 				log.Fatal(err)

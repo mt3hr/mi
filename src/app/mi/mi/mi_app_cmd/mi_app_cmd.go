@@ -1,6 +1,7 @@
 package mi_app_cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -52,6 +53,7 @@ var (
 				}
 
 				go func() {
+					mi.LoadedRepositories.UpdateCache(context.Background())
 					err := mi.LaunchServer()
 					if err != nil {
 						log.Fatal(err)

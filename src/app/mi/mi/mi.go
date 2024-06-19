@@ -484,6 +484,8 @@ func LoadRepositories() error {
 	}
 	r.MiRep = reps[0]
 
+	addedMiReps := []mi.MiRep{}
+	addedMiReps = append(addedMiReps, r.MiRep)
 	if LoadedConfig.Repositories.MiReps == nil {
 		err := fmt.Errorf("configファイルのRepositories.MiRepsの項目が設定されていないかあるいは不正です")
 		return err
@@ -494,7 +496,18 @@ func LoadRepositories() error {
 			err = fmt.Errorf("error at load reps: %w", err)
 			return err
 		}
-		r.MiReps = append(r.MiReps, reps...)
+		for _, miRep := range reps {
+			for _, existMiRep := range addedMiReps {
+				if filepath.Base(miRep.Path()) == filepath.Base(existMiRep.Path()) {
+					continue
+				}
+			}
+			r.MiReps = append(r.MiReps, miRep)
+			addedMiReps = append(addedMiReps, miRep)
+		}
+	}
+	r.MiReps = []mi.MiRep{
+		mi.NewCachedMiRep(mi.MiReps(r.MiReps)),
 	}
 
 	if LoadedConfig.Repositories.TagReps == nil {
@@ -1608,7 +1621,7 @@ func LaunchServer() error {
 		return err
 	}
 	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := LoadedRepositories.UpdateCache(r.Context())
+		err := LoadedRepositories.TagRep.UpdateCache(r.Context())
 		if err != nil {
 			fmt.Printf("%#v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -13,7 +13,46 @@ import (
 
 type MiReps []MiRep
 
+func (m MiReps) AddStartInfo(startInfo *StartInfo) error {
+	return m.AddStartInfo(startInfo)
+}
+
+func (m MiReps) AddEndInfo(endInfo *EndInfo) error {
+	return m.AddEndInfo(endInfo)
+}
+
 func (m MiReps) UpdateCache(ctx context.Context) error {
+	existErr := false
+	var err error
+	wg := &sync.WaitGroup{}
+	errch := make(chan error, len(m))
+	defer close(errch)
+	for _, miRep := range m {
+		wg.Add(1)
+		miRep := miRep
+		go func(miRep MiRep) {
+			defer wg.Done()
+			err := miRep.UpdateCache(ctx)
+			if err != nil {
+				// errch <- err
+				return
+			}
+		}(miRep)
+	}
+	wg.Wait()
+errloop:
+	for {
+		select {
+		case e := <-errch:
+			err = fmt.Errorf("error at getAllCheckStateInfos: %w", e)
+			existErr = true
+		default:
+			break errloop
+		}
+	}
+	if existErr {
+		return err
+	}
 	return nil
 }
 
