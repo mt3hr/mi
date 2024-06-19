@@ -52,8 +52,8 @@ var (
 					log.Fatal(err)
 				}
 
+				mi.LoadedRepositories.UpdateCache(context.Background())
 				go func() {
-					mi.LoadedRepositories.UpdateCache(context.Background())
 					err := mi.LaunchServer()
 					if err != nil {
 						log.Fatal(err)
