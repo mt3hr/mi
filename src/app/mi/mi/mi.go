@@ -509,6 +509,7 @@ func LoadRepositories() error {
 	r.MiReps = []mi.MiRep{
 		mi.NewCachedMiRep(mi.MiReps(r.MiReps)),
 	}
+	r.MiReps = append(r.MiReps, r.MiRep)
 
 	if LoadedConfig.Repositories.TagReps == nil {
 		err := fmt.Errorf("configファイルのRepositories.TagRepsの項目が設定されていないかあるいは不正です")
@@ -1723,6 +1724,12 @@ type Repositories struct {
 
 func (r *Repositories) UpdateCache(ctx context.Context) error {
 	var err error
+	err = r.MiRep.UpdateCache(ctx)
+	if err != nil {
+		err = fmt.Errorf("error at update cache at %s: %w", r.MiRep.RepName(), err)
+		return err
+	}
+
 	for _, rep := range r.MiReps {
 		err := rep.UpdateCache(ctx)
 		if err != nil {
