@@ -124,7 +124,7 @@ type ApplicationConfig struct {
 	BoardStruct      interface{} `yaml:"BoardStruct" json:"board_struct"`
 	TagStruct        interface{} `yaml:"TagStruct" json:"tag_struct"`
 	DefaultBoardName string      `yaml:"DefaultBoardName" json:"default_board_name"`
-	EnableHotReload  bool        `json:"enable_hot_reload"`
+	EnableHotReload  bool        `yaml:"EnableHotReload" json:"enable_hot_reload"`
 }
 
 func getConfigFile() string {
@@ -895,6 +895,12 @@ func LaunchServer() error {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		err = tag.TagReps(LoadedRepositories.TagReps).UpdateCache(r.Context())
+		if err != nil {
+			response.Errors = append(response.Errors, "タグのキャッシュ更新に失敗しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}).Methods(delete_task_method)
 
 	router.HandleFunc(get_task_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1103,6 +1109,12 @@ func LaunchServer() error {
 			return
 		}
 
+		err = tag.TagReps(LoadedRepositories.TagReps).UpdateCache(r.Context())
+		if err != nil {
+			response.Errors = append(response.Errors, "タグのキャッシュ更新に失敗しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}).Methods(add_tag_method)
 
 	router.HandleFunc(add_text_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1298,6 +1310,12 @@ func LaunchServer() error {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		err = tag.TagReps(LoadedRepositories.TagReps).UpdateCache(r.Context())
+		if err != nil {
+			response.Errors = append(response.Errors, "タグのキャッシュ更新に失敗しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}).Methods(delete_tag_method)
 
 	router.HandleFunc(delete_text_address, func(w http.ResponseWriter, r *http.Request) {
@@ -1340,6 +1358,12 @@ func LaunchServer() error {
 		LoadedRepositories.DeleteTagReps.UpdateCache(r.Context())
 
 		err = LoadedRepositories.TagRep.UpdateCache(r.Context())
+		if err != nil {
+			response.Errors = append(response.Errors, "タグのキャッシュ更新に失敗しました")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = tag.TagReps(LoadedRepositories.TagReps).UpdateCache(r.Context())
 		if err != nil {
 			response.Errors = append(response.Errors, "タグのキャッシュ更新に失敗しました")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1623,6 +1647,12 @@ func LaunchServer() error {
 	}
 	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := LoadedRepositories.TagRep.UpdateCache(r.Context())
+		if err != nil {
+			fmt.Printf("%#v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = tag.TagReps(LoadedRepositories.TagReps).UpdateCache(r.Context())
 		if err != nil {
 			fmt.Printf("%#v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
