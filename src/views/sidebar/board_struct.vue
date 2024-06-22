@@ -22,9 +22,9 @@
                 </tr>
             </table>
             <table class="ml-4">
-                <structures v-show="open_group" v-for="(child_struct, index) in struct_list" :open="get_group_open(index)"
-                    :key="index" :struct="child_struct" :group_name="get_group_name(index)"
-                    @click_items_by_user="emit_click_items_by_user" />
+                <structures v-show="open_group" v-for="(child_struct, index) in struct_list"
+                    :open="get_group_open(index)" :key="index" :struct="child_struct"
+                    :group_name="get_group_name(index)" @click_items_by_user="emit_click_items_by_user" />
             </table>
         </td>
     </tr>
@@ -43,7 +43,7 @@ interface Props {
 const props = defineProps<Props>()
 const emits = defineEmits<{
     (e: 'errors', errors: Array<string>): void
-    (e: 'click_items_by_user', items: Array<string>): void
+    (e: 'click_items_by_user', ev: MouseEvent, items: Array<string>): void
 }>()
 
 let open_group: Ref<boolean> = ref(props.open)
@@ -90,21 +90,21 @@ function get_group_name(index: number) {
     return group_name
 }
 // 子グループ内の複数のアイテムのみをチェックするように変更があったときに、それを上に伝えるために呼び出されます。
-function emit_click_items_by_user(items: Array<string>) {
-    emits('click_items_by_user', items)
+function emit_click_items_by_user(e: MouseEvent, items: Array<string>) {
+    emits('click_items_by_user', e, items)
 }
 // 子グループ内の一つのアイテムのみをチェックするよう変更があったときに、それを上に伝えるために呼び出されます。
-function emit_click_item_by_user(item: string) {
-    emit_click_items_by_user([item])
+function emit_click_item_by_user(e: MouseEvent, item: string) {
+    emit_click_items_by_user(e, [item])
 }
 // このアイテムがクリックされたときに呼び出されます。
 // このアイテムのみにチェックが入るように上にemitします。
-function click_item_by_user() {
-    emit_click_item_by_user(props.struct.key)
+function click_item_by_user(e: MouseEvent) {
+    emit_click_item_by_user(e, props.struct.key)
 }
 // このアイテムがクリックされたときに呼び出されます。
 // このアイテム内のアイテムのみにチェックが入るように上にemitします。
-function click_group_by_user() {
+function click_group_by_user(e: MouseEvent) {
     let items = new Array<string>()
     let f = (struct: any) => { }
     let func = (struct: any) => {
@@ -118,7 +118,7 @@ function click_group_by_user() {
     }
     f = func
     f(props.struct)
-    emit_click_items_by_user(items)
+    emit_click_items_by_user(e, items)
 }
 </script>
 

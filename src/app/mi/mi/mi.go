@@ -507,7 +507,7 @@ func LoadRepositories() error {
 		}
 	}
 	r.MiReps = []mi.MiRep{
-		mi.NewCachedMiRep(mi.MiReps(r.MiReps)),
+		mi.NewCachedMiRep(r.MiReps),
 	}
 	r.MiReps = append(r.MiReps, r.MiRep)
 
@@ -945,6 +945,15 @@ func LaunchServer() error {
 		err := json.NewDecoder(r.Body).Decode(request)
 		if err != nil {
 			panic(err)
+		}
+
+		if request.UpdateCache {
+			err := LoadedRepositories.UpdateCache(r.Context())
+			if err != nil {
+				response.Errors = append(response.Errors, "板内タスク情報の取得に失敗しました")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 
 		boardsTasksMap := map[string]*mi.Task{}
@@ -1567,11 +1576,14 @@ func LaunchServer() error {
 				for _, task := range tasks {
 					boardInfo, err := miRep.GetLatestBoardInfoFromTaskID(r.Context(), task.TaskID)
 					if err != nil {
-						response.Errors = append(response.Errors, "板一覧の取得に失敗しました")
-						w.WriteHeader(http.StatusInternalServerError)
-						return
+						// response.Errors = append(response.Errors, "板一覧の取得に失敗しました")
+						// w.WriteHeader(http.StatusInternalServerError)
+						// errch <- err
+						continue
 					}
-					repsBoardNames = append(repsBoardNames, boardInfo.BoardName)
+					if boardInfo != nil {
+						repsBoardNames = append(repsBoardNames, boardInfo.BoardName)
+					}
 				}
 				ch <- repsBoardNames
 			}(miRep)
@@ -1646,18 +1658,6 @@ func LaunchServer() error {
 		return err
 	}
 	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := LoadedRepositories.TagRep.UpdateCache(r.Context())
-		if err != nil {
-			fmt.Printf("%#v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		err = tag.TagReps(LoadedRepositories.TagReps).UpdateCache(r.Context())
-		if err != nil {
-			fmt.Printf("%#v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
 		http.FileServer(http.FS(html)).ServeHTTP(w, r)
 	})
 
@@ -1760,13 +1760,12 @@ func (r *Repositories) UpdateCache(ctx context.Context) error {
 		return err
 	}
 
-	for _, rep := range r.MiReps {
-		err := rep.UpdateCache(ctx)
-		if err != nil {
-			err = fmt.Errorf("error at update cache at %s: %w", rep.RepName(), err)
-			return err
-		}
+	err = r.MiReps.UpdateCache(ctx)
+	if err != nil {
+		err = fmt.Errorf("error at update cache at mi reps: %w", err)
+		return err
 	}
+
 	for _, rep := range r.TagReps {
 		err := rep.UpdateCache(ctx)
 		if err != nil {

@@ -442,16 +442,16 @@ func (c *cachedMiRep) UpdateCache(ctx context.Context) error {
 		return err
 	}
 
-	c.cachedTaskInfo = nil
+	c.cachedTaskInfo =  map[string]*TaskInfo{}
 	allTaskInfos := map[string]*TaskInfo{}
 	for _, task := range allTasks {
 		taskInfo, err := c.miRep.GetTaskInfo(ctx, task.TaskID)
 		if err != nil {
 			return err
 		}
-		allTaskInfos[taskInfo.Task.TaskID] = taskInfo
+		allTaskInfos[task.TaskID] = taskInfo
 	}
 	c.cachedTaskInfo = allTaskInfos
 
-	return nil
+	return ctx.Err()
 }

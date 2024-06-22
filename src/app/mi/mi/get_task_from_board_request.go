@@ -5,5 +5,6 @@ import (
 )
 
 type GetTaskFromBoardRequest struct {
-	Query *mi.SearchTaskQuery `json:"query"`
+	Query       *mi.SearchTaskQuery `json:"query"`
+	UpdateCache bool                `json:"update_cache"`
 }

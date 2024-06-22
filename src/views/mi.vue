@@ -20,14 +20,15 @@
         <div class="boards_view">
             <table class="pa-0 ma-0">
                 <tr class="boards_wrap pa-0 ma-0">
-                    <td class="board_wrap pa-0 ma-0" cols="auto" v-for="board_name in opened_board_names" :key="board_name">
-                        <board class="pa-0 ma-0 board" :board_name="board_name" :selected_board_name="watching_board_name"
-                            :task_infos="task_infos_map[board_name]" :loading="loading_map[board_name]"
-                            :sort_type="sort_type_map[board_name]" @errors="write_messages" @copied_task_id="copied_task_id"
-                            @added_tag="added_tag" @added_text="added_text" @updated_task="updated_task"
-                            @deleted_task="deleted_task" @clicked_task="set_watching_task"
-                            @close_board_request="close_board" @reload_board_request="update_board"
-                            @clicked_board="clicked_board_at_sidebar" />
+                    <td class="board_wrap pa-0 ma-0" cols="auto" v-for="board_name in opened_board_names"
+                        :key="board_name">
+                        <board class="pa-0 ma-0 board" :board_name="board_name"
+                            :selected_board_name="watching_board_name" :task_infos="task_infos_map[board_name]"
+                            :loading="loading_map[board_name]" :sort_type="sort_type_map[board_name]"
+                            @errors="write_messages" @copied_task_id="copied_task_id" @added_tag="added_tag"
+                            @added_text="added_text" @updated_task="updated_task" @deleted_task="deleted_task"
+                            @clicked_task="set_watching_task" @close_board_request="close_board"
+                            @reload_board_request="update_board" @clicked_board="clicked_board_at_sidebar" />
                     </td>
                 </tr>
             </table>
@@ -114,7 +115,7 @@ const bar_height = (actual_height - element_height) + "px"
 
 update_option()
     .then(() => {
-        clicked_board_at_sidebar(option.value.default_board_name)
+        clicked_board_at_sidebar(option.value.default_board_name, true)
         inited.value = true
     })
 
@@ -150,16 +151,16 @@ function write_message(message_: string) {
 function set_watching_task(task_info: TaskInfo) {
     watching_task_info.value = task_info
 }
-function open_board(board_name: string) {
+function open_board(board_name: string, update_cache: boolean) {
     if (!board_name || board_name === "") {
         return
     }
     opened_board_names.value.push(board_name)
     load_board_search_query(board_name)
     select_board(board_name)
-    update_board(board_name)
+    update_board(board_name, update_cache)
 }
-function update_board(board_name: string) {
+function update_board(board_name: string, update_cache: boolean) {
     const api = new MiServerAPI()
     const query = sidebar_ref.value?.construct_task_search_query()
     if (!query || board_name == "") {
@@ -176,6 +177,7 @@ function update_board(board_name: string) {
     query_map.value[board_name] = query
     const request = new GetTasksFromBoardRequest()
     request.query = query!
+    request.update_cache = update_cache
     save_board_search_query(board_name, query)
     api.get_tasks_from_board(request, abort_controller)
         .then(res => {
@@ -187,6 +189,7 @@ function update_board(board_name: string) {
             task_infos_map.value[board_name] = res.boards_tasks
             loading_map.value[board_name] = false
             update_calendar()
+            inited.value = true
         })
         .catch((err) => {
             return // DOMException: The user aborted a request.が飛んで邪魔なので握りつぶす
@@ -202,7 +205,7 @@ function update_all_board() {
         }
     })
     if (opened_all_board) {
-        update_board(api.all_board_name())
+        update_board(api.all_board_name(), false)
     }
 }
 function close_board(board_name: string) {
@@ -233,7 +236,7 @@ async function select_board(board_name: string | null) {
     }
     if (!query_map.value[board_name!]) {
         await sidebar_ref.value?.check_all_tags()
-        update_board(board_name!)
+        update_board(board_name!, false)
     }
     sidebar_ref.value?.set_search_word_by_application(query_map.value![board_name!].word)
     sidebar_ref.value?.set_sort_type_by_application(query_map.value![board_name!].sort_type)
@@ -251,17 +254,17 @@ async function write_messages(messages: Array<string>) {
     }
 }
 function updated_check_condition(check_state: CheckState) {
-    update_board(watching_board_name.value!)
+    update_board(watching_board_name.value!, false)
 }
 function updated_sort_type(sort_type: SortType) {
     calendar_sort_mode.value = sort_type
-    update_board(watching_board_name.value!)
+    update_board(watching_board_name.value!, false)
 }
 function updated_search_word(word: string) {
-    update_board(watching_board_name.value!)
+    update_board(watching_board_name.value!, false)
 }
 function updated_boards_by_user() {
-    update_board(watching_board_name.value!)
+    update_board(watching_board_name.value!, false)
 }
 function is_opened_board(board_name: string): boolean {
     let opened = false
@@ -273,9 +276,9 @@ function is_opened_board(board_name: string): boolean {
     }
     return opened
 }
-function clicked_board_at_sidebar(board_name: string) {
+function clicked_board_at_sidebar(board_name: string, update_cache: boolean) {
     if (!is_opened_board(board_name)) {
-        open_board(board_name)
+        open_board(board_name, update_cache)
     }
     select_board(board_name)
     update_calendar()
@@ -287,7 +290,7 @@ function added_task(task_info: TaskInfo) {
     const target_board_name = task_info.board_info.board_name
     if (is_opened_board(target_board_name)) {
         select_board(target_board_name)
-        update_board(target_board_name)
+        update_board(target_board_name, false)
     }
     update_all_board()
     update_board_struct()
@@ -295,7 +298,7 @@ function added_task(task_info: TaskInfo) {
 }
 function updated_tags_by_user() {
     if (watching_board_name.value) {
-        update_board(watching_board_name.value!)
+        update_board(watching_board_name.value!, false)
     }
 }
 function updated_checked_tags(tags: Array<string>) {
@@ -321,14 +324,14 @@ function updated_task(old_task_info: TaskInfo | null | undefined, new_task_info:
     if (is_opened_board(old_board_name)) {
         select_board(old_board_name)
         if (option.value.enable_hot_reload || old_board_name != new_board_name) {
-            update_board(old_board_name)
+            update_board(old_board_name, false)
             update_all_board()
         }
     }
     if (is_opened_board(new_board_name)) {
         select_board(new_board_name)
         if (option.value.enable_hot_reload || old_board_name != new_board_name) {
-            update_board(new_board_name)
+            update_board(new_board_name, false)
             update_all_board()
         }
     }
@@ -342,7 +345,7 @@ function deleted_task(task_info: TaskInfo) {
     const target_board_name = task_info.board_info.board_name
     if (is_opened_board(target_board_name)) {
         select_board(target_board_name)
-        update_board(target_board_name)
+        update_board(target_board_name, false)
     }
     update_all_board()
     if (watching_task_info.value?.task.task_id === task_info.task?.task_id) {

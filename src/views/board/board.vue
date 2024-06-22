@@ -8,7 +8,7 @@
                     </v-col>
                     <v-spacer />
                     <v-col class="pa-0 ma-0" cols="auto">
-                        <v-btn icon="mdi-reload" @click="emit_reload_board_request" />
+                        <v-btn icon="mdi-reload" @click="(e: MouseEvent) => emit_reload_board_request(e)" />
                     </v-col>
                     <v-col class="pa-0 ma-0" cols="auto">
                         <v-btn icon="mdi-close" @click="emit_close_board_request" />
@@ -61,9 +61,9 @@ const emits = defineEmits<{
     (e: 'updated_task', old_task_info: TaskInfo | null | undefined, new_task_info: TaskInfo): void
     (e: 'deleted_task', task_info: TaskInfo): void
     (e: 'clicked_task', task_info: TaskInfo): void
-    (e: 'clicked_board', board_name: string): void
+    (e: 'clicked_board', board_name: string, update_cache: boolean): void
     (e: 'close_board_request', board_name: string): void
-    (e: 'reload_board_request', board_name: string): void
+    (e: 'reload_board_request', board_name: string, update_cache: boolean): void
 }>()
 
 const title_style: Ref<any> = ref(generate_title_style())
@@ -125,11 +125,11 @@ function emit_clicked_task(clicked_task_info: TaskInfo) {
 function emit_close_board_request() {
     emits("close_board_request", props.board_name)
 }
-function emit_reload_board_request() {
-    emits("reload_board_request", props.board_name)
+function emit_reload_board_request(e: MouseEvent) {
+    emits("reload_board_request", props.board_name, e.ctrlKey)
 }
 function emit_clicked_board() {
-    emits("clicked_board", props.board_name)
+    emits("clicked_board", props.board_name, false)
 }
 function dragover(e: DragEvent) {
     e!.dataTransfer!.dropEffect = "move"

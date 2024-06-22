@@ -2,7 +2,7 @@
     <h2>板</h2>
     <table class="boardlist">
         <board_struct ref="board_struct_ref" :group_name="''" :struct="board_structure" :open="true"
-            @click_items_by_user="(clicked_items) => { emit_clicked_board(clicked_items[0]) }" />
+            @click_items_by_user="(e, clicked_items) => { emit_clicked_board(e, clicked_items[0]) }" />
     </table>
 </template>
 <script setup lang="ts">
@@ -20,7 +20,7 @@ const props = defineProps<Props>()
 const emits = defineEmits<{
     (e: 'errors', errors: Array<string>): void
     (e: 'updated_by_user'): void
-    (e: 'clicked_board', board: string): void
+    (e: 'clicked_board', ev: MouseEvent, board: string): void
 }>()
 
 watch(() => props.option, () => {
@@ -147,8 +147,8 @@ function update_boards_promise() {
         }).then(() => { return update_board_struct_promise() })
 }
 
-function emit_clicked_board(board: string) {
-    emits("clicked_board", board)
+function emit_clicked_board(e: MouseEvent, board: string) {
+    emits("clicked_board", e, board)
 }
 </script>
 

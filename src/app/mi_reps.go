@@ -43,6 +43,10 @@ func (m MiReps) UpdateCache(ctx context.Context) error {
 errloop:
 	for {
 		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+			existErr = true
+			break
 		case e := <-errch:
 			err = fmt.Errorf("error at getAllCheckStateInfos: %w", e)
 			existErr = true

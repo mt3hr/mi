@@ -35,7 +35,7 @@ const emits = defineEmits<{
     (e: 'updated_sort_type', sort_type: SortType): void
     (e: 'updated_search_word', word: string): void
     (e: 'updated_boards_by_user'): void
-    (e: 'clicked_board', board: any): void
+    (e: 'clicked_board', board: any, update_cache: boolean): void
     (e: 'updated_tags_by_user'): void
     (e: 'updated_checked_tags', tags: Array<string>): void
 }>()
@@ -73,8 +73,8 @@ function updated_search_word(updated_word: string) {
 function updated_boards_by_user() {
     emit_updated_boards_by_user()
 }
-function clicked_board(updated_board: string) {
-    emit_clicked_board(updated_board)
+function clicked_board(e: MouseEvent, updated_board: string) {
+    emit_clicked_board(updated_board, e.ctrlKey)
 }
 function updated_tags_by_user() {
     emit_updated_tags_by_user()
@@ -131,8 +131,8 @@ function emit_updated_search_word(updated_word: string) {
 function emit_updated_boards_by_user() {
     emits("updated_boards_by_user")
 }
-function emit_clicked_board(updated_board: string) {
-    emits("clicked_board", updated_board)
+function emit_clicked_board(updated_board: string, update_cache: boolean) {
+    emits("clicked_board", updated_board, update_cache)
 }
 function emit_updated_tags_by_user() {
     emits("updated_tags_by_user")
