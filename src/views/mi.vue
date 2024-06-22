@@ -115,8 +115,7 @@ const bar_height = (actual_height - element_height) + "px"
 
 update_option()
     .then(() => {
-        clicked_board_at_sidebar(option.value.default_board_name, true)
-        inited.value = true
+        clicked_board_at_sidebar(option.value.default_board_name, false)
     })
 
 watch(is_show_calendar_view, () => {
@@ -177,7 +176,7 @@ function update_board(board_name: string, update_cache: boolean) {
     query_map.value[board_name] = query
     const request = new GetTasksFromBoardRequest()
     request.query = query!
-    request.update_cache = update_cache
+    request.update_cache = update_cache || !inited.value
     save_board_search_query(board_name, query)
     api.get_tasks_from_board(request, abort_controller)
         .then(res => {
