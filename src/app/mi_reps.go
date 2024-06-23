@@ -29,13 +29,19 @@ func (m MiReps) UpdateCache(ctx context.Context) error {
 	defer close(errch)
 	for _, miRep := range m {
 		wg.Add(1)
-		miRep := miRep
 		go func(miRep MiRep) {
 			defer wg.Done()
-			err := miRep.UpdateCache(ctx)
-			if err != nil {
-				// errch <- err
-				return
+			select {
+			case <-ctx.Done():
+				err := ctx.Err()
+				if err != nil {
+					errch <- err
+				}
+			default:
+				err := miRep.UpdateCache(ctx)
+				if err != nil {
+					errch <- err
+				}
 			}
 		}(miRep)
 	}
@@ -46,7 +52,7 @@ errloop:
 		case <-ctx.Done():
 			err = ctx.Err()
 			existErr = true
-			break
+			break errloop
 		case e := <-errch:
 			err = fmt.Errorf("error at getAllCheckStateInfos: %w", e)
 			existErr = true

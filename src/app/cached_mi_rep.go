@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mt3hr/rykv/kyou"
@@ -12,6 +13,7 @@ import (
 func NewCachedMiRep(miRep MiRep) MiRep {
 	result := &cachedMiRep{
 		miRep: miRep,
+		m:     &sync.Mutex{},
 	}
 	// result.UpdateCache(context.Background())
 	return result
@@ -20,6 +22,7 @@ func NewCachedMiRep(miRep MiRep) MiRep {
 type cachedMiRep struct {
 	cachedTaskInfo map[string]*TaskInfo
 	miRep          MiRep
+	m              *sync.Mutex
 }
 
 func (c *cachedMiRep) GetAllTasks(ctx context.Context) ([]*Task, error) {
@@ -437,12 +440,14 @@ func (c *cachedMiRep) SearchTasks(ctx context.Context, word string, query *Searc
 }
 
 func (c *cachedMiRep) UpdateCache(ctx context.Context) error {
+	// c.m.Lock()
+	// defer c.m.Unlock()
 	allTasks, err := c.GetAllTasks(ctx)
 	if err != nil {
 		return err
 	}
 
-	c.cachedTaskInfo =  map[string]*TaskInfo{}
+	c.cachedTaskInfo = map[string]*TaskInfo{}
 	allTaskInfos := map[string]*TaskInfo{}
 	for _, task := range allTasks {
 		taskInfo, err := c.miRep.GetTaskInfo(ctx, task.TaskID)
