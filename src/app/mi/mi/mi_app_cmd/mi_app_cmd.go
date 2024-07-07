@@ -69,8 +69,8 @@ var (
 				// Initialize astilectron
 				a, err := astilectron.New(nil, astilectron.Options{
 					AppName:            "mi",
-					VersionAstilectron: "0.51.0",
-					VersionElectron:    "22.0.0",
+					VersionAstilectron: "0.58.0",
+					VersionElectron:    "31.0.0",
 					AppIconDefaultPath: "C:/Users/yamat/Git/mi/public/favicon.png",
 					AppIconDarwinPath:  "C:/Users/yamat/Git/mi/public/favicon.ico",
 				})
